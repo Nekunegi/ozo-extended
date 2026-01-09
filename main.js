@@ -3,6 +3,12 @@ const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
 const ManageOZO3 = require('./manageOZO3');
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
+
+// 詳細なログを出力
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
 
 // Windows コンソールでUTF-8を使用するための設定
 if (process.platform === 'win32') {
@@ -155,6 +161,9 @@ function showNotification(title, body) {
 }
 
 app.whenReady().then(() => {
+  setupAutoUpdater();
+  autoUpdater.checkForUpdatesAndNotify();
+
   // アイコンを読み込み（32x32で高品質に）
   const iconPath = path.join(__dirname, 'icon.png');
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 32, height: 32 });
@@ -489,3 +498,50 @@ async function handleClockOut() {
 app.on('window-all-closed', (e) => {
   e.preventDefault();
 });
+
+function setupAutoUpdater() {
+  const { dialog } = require('electron');
+
+  autoUpdater.on('checking-for-update', () => {
+    log.info('Checking for update...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    log.info('Update available.');
+    showNotification('ozo:extended', '新しいバージョンが見つかりました。ダウンロード中です...');
+  });
+
+  autoUpdater.on('update-not-available', (info) => {
+    log.info('Update not available.');
+  });
+
+  autoUpdater.on('error', (err) => {
+    log.error('Error in auto-updater. ' + err);
+    // showNotification('ozo:extended', 'アップデートエラー: ' + err); // エラー通知はうるさいかもしれないのでログのみ
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    let log_message = "Download speed: " + progressObj.bytesPerSecond;
+    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+    log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+    log.info(log_message);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded');
+
+    const dialogOpts = {
+      type: 'info',
+      buttons: ['再起動して適用', '後で'],
+      title: 'アップデートあり',
+      message: '新しいバージョンがダウンロードされました。',
+      detail: '再起動してアップデートを適用しますか？'
+    };
+
+    dialog.showMessageBox(dialogOpts).then((returnValue) => {
+      if (returnValue.response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    });
+  });
+}
