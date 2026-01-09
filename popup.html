@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ozo:extended</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            border-radius: 32px;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            padding-top: 36px;
+            user-select: none;
+            border-radius: 32px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 36px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 32px 32px 0 0;
+            pointer-events: none;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .title {
+            position: absolute;
+            top: 6px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #8892b0;
+            line-height: 24px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .time {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.2;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 12px;
+            flex: 1;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-clock-in {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: #fff;
+        }
+
+        .btn-clock-in:hover {
+            background: linear-gradient(135deg, #ff7b45 0%, #f9a32e 100%);
+        }
+
+        .btn-clock-out {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .btn-clock-out:hover {
+            background: linear-gradient(135deg, #768efa 0%, #865bb2 100%);
+        }
+
+        .btn-icon {
+            font-size: 20px;
+        }
+
+        .header-btns-left {
+            position: absolute;
+            top: 6px;
+            left: 8px;
+            display: flex;
+            gap: 6px;
+            z-index: 10;
+        }
+
+        .header-btns {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            display: flex;
+            gap: 6px;
+            z-index: 10;
+        }
+
+        .header-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #8892b0;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .header-btn img {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        /* Loading Spinner */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top: 2px solid #4cd137;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .disabled-look {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .btn-spinner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: auto;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top: 2px solid #4cd137;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        .btn.loading .btn-spinner {
+            display: block;
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            position: relative;
+            height: 18px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 9px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #4cd137, #00cec9);
+            transition: width 0.1s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background-image: linear-gradient(-45deg,
+                    rgba(255, 255, 255, 0.2) 25%, transparent 25%,
+                    transparent 50%, rgba(255, 255, 255, 0.2) 50%,
+                    rgba(255, 255, 255, 0.2) 75%, transparent 75%, transparent);
+            background-size: 20px 20px;
+            animation: moveStripes 1s linear infinite;
+        }
+
+        @keyframes moveStripes {
+            0% {
+                background-position: 0 0;
+            }
+
+            100% {
+                background-position: 20px 20px;
+            }
+        }
+
+        /* Slide Panel */
+        .slide-wrapper {
+            width: 100%;
+            overflow: hidden;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide-container {
+            display: flex;
+            width: 200%;
+            transition: transform 0.3s ease;
+            flex: 1;
+        }
+
+        .slide-container.slide-right {
+            transform: translateX(-50%);
+        }
+
+        .slide-panel {
+            width: 50%;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide-arrow {
+            position: absolute;
+            top: calc(50% + 16px);
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            z-index: 20;
+            transition: all 0.2s ease;
+        }
+
+        .slide-arrow:hover {
+            color: #fff;
+        }
+
+        .slide-arrow-right {
+            right: 4px;
+        }
+
+        .slide-arrow-left {
+            left: 4px;
+        }
+
+        /* Monthly Info Panel */
+        .monthly-info {
+            width: 100%;
+            padding: 0 12px;
+        }
+
+        .monthly-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+
+        .monthly-title {
+            text-align: center;
+            font-size: 12px;
+            color: #8892b0;
+            margin-bottom: 16px;
+        }
+
+        .monthly-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .monthly-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .monthly-label {
+            color: #8892b0;
+            font-size: 11px;
+        }
+
+        .monthly-value {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            font-size: 13px;
+        }
+
+        .monthly-value.positive {
+            color: #4cd137;
+        }
+
+        .monthly-value.negative {
+            color: #ff6b6b;
+        }
+
+        .monthly-loading {
+            text-align: center;
+            color: #8892b0;
+            font-size: 12px;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-btns-left">
+        <button class="header-btn" onclick="window.electronAPI.openManageOZO3()" title="ManageOZO3を開く">
+            <img src="icon.png" alt="OZO">
+        </button>
+    </div>
+    <div class="header-btns">
+        <button class="header-btn" onclick="window.electronAPI.openSettings()" title="設定">⚙️</button>
+    </div>
+
+    <!-- Slide Arrow Buttons -->
+    <button id="arrowRight" class="slide-arrow slide-arrow-right" onclick="slideToMonthly()" title="月次情報">▶</button>
+    <button id="arrowLeft" class="slide-arrow slide-arrow-left" onclick="slideToMain()" style="display: none;"
+        title="メイン">◀</button>
+
+    <div class="title">ozo:extended</div>
+
+    <div class="slide-wrapper">
+        <div id="slideContainer" class="slide-container">
+            <!-- Panel 1: Main View -->
+            <div class="slide-panel" id="mainPanel">
+                <div class="time" id="currentTime">--:--:--</div>
+
+                <div id="workInfo"
+                    style="display: none; width: 100%; margin-bottom: 8px; padding: 0 16px; position: relative;">
+                    <div id="workInfoContent"
+                        style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px; font-size: 10px;">
+                        <div id="workInfoLoading" class="loading-overlay" style="display: none;">
+                            <div class="spinner"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #8892b0;">
+                            <div>出 <span id="clockInTime" style="color: #fff; font-weight: 600;">--:--</span></div>
+                            <div>退 <span id="clockOutTime" style="color: #fff; font-weight: 600;">--:--</span></div>
+                            <div>最 <span id="minClockOutTime" style="color: #4cd137; font-weight: 600;">--:--</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div id="progressBar" class="progress-bar-fill"></div>
+                            <div
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
+                                <span style="margin-right: 6px; font-weight: 400; opacity: 0.9;">残り</span>
+                                <span id="countdown" style="font-weight: 600;">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="container" id="mainButtons" style="display: none; margin-top: 8px;">
+                    <button id="btnClockIn" class="btn btn-clock-in" onclick="window.handleClockInWrapper()">
+                        <span class="btn-spinner"></span>
+                        <span class="btn-content">
+                            <span class="btn-icon">🏢</span>
+                            <span>出勤</span>
+                        </span>
+                    </button>
+                    <button id="btnClockOut" class="btn btn-clock-out" onclick="window.handleClockOutWrapper()"
+                        style="display: none;">
+                        <span class="btn-spinner"></span>
+                        <span class="btn-content">
+                            <span class="btn-icon">🏠</span>
+                            <span>退勤</span>
+                        </span>
+                    </button>
+                </div>
+
+                <div class="container" id="setupPrompt" style="display: none;">
+                    <p style="text-align: center; color: #8892b0; font-size: 12px; margin-bottom: 12px;">
+                        MailとPasswordを<br>設定してください
+                    </p>
+                    <button class="btn btn-clock-in" onclick="window.electronAPI.openSettings()">
+                        <span class="btn-icon">⚙️</span>
+                        <span>設定を開く</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel 2: Monthly Info -->
+            <div class="slide-panel" id="monthlyPanel" style="justify-content: center;">
+                <div class="monthly-info">
+                    <div class="monthly-title"
+                        style="text-align: center; font-size: 12px; color: #8892b0; margin-bottom: 8px; font-weight: 600;">
+                        勤怠管理情報</div>
+                    <div class="monthly-card" id="monthlyCard">
+                        <div id="monthlyLoading" class="monthly-loading">
+                            <div class="spinner" style="margin: 0 auto;"></div>
+                            <div style="margin-top: 8px;">読み込み中...</div>
+                        </div>
+                        <div id="monthlyData" style="display: none;">
+                            <div class="monthly-row">
+                                <span class="monthly-label">実働</span>
+                                <span class="monthly-value" id="workedTime">--:--</span>
+                            </div>
+                            <div class="monthly-row">
+                                <span class="monthly-label">必要</span>
+                                <span class="monthly-value" id="requiredTime">--:--</span>
+                            </div>
+                            <div class="monthly-row">
+                                <span class="monthly-label">差分</span>
+                                <span class="monthly-value" id="diffTime">--:--</span>
+                            </div>
+                            <div class="monthly-row">
+                                <span class="monthly-label">日別過不足</span>
+                                <span class="monthly-value" id="dailyDiffTime">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        async function checkConfig() {
+            const configured = await window.electronAPI.isConfigured();
+            if (configured) {
+                document.getElementById('mainButtons').style.display = 'flex';
+                document.getElementById('setupPrompt').style.display = 'none';
+                document.getElementById('workInfo').style.display = 'block';
+                await updateWorkInfoDisplay();
+            } else {
+                document.getElementById('mainButtons').style.display = 'none';
+                document.getElementById('setupPrompt').style.display = 'flex';
+                document.getElementById('workInfo').style.display = 'none';
+            }
+        }
+
+        async function updateWorkInfoDisplay() {
+            setLoading(true);
+            const info = await window.electronAPI.getWorkInfo();
+
+            if (info && info.isProcessing) {
+                disableButtons();
+                setTimeout(updateWorkInfoDisplay, 1000);
+                return;
+            } else {
+                enableButtons();
+            }
+
+            setLoading(false);
+
+            const btnClockIn = document.getElementById('btnClockIn');
+            const btnClockOut = document.getElementById('btnClockOut');
+
+            if (info && info.clockedIn) {
+                if (btnClockIn) btnClockIn.style.display = 'none';
+                if (btnClockOut) btnClockOut.style.display = 'flex';
+
+                document.getElementById('clockInTime').textContent = info.clockInTime;
+                document.getElementById('clockOutTime').textContent = info.clockOutTime ? info.clockOutTime : '--:--';
+                document.getElementById('minClockOutTime').textContent = info.minClockOutTime;
+
+                startCountdown(info.minClockOutTime);
+            } else {
+                if (btnClockIn) {
+                    btnClockIn.style.display = 'flex';
+                    btnClockIn.classList.remove('disabled-look');
+                }
+                if (btnClockOut) btnClockOut.style.display = 'none';
+                resetWorkInfo();
+            }
+        }
+
+        function setLoading(isLoading) {
+            const loadingOverlay = document.getElementById('workInfoLoading');
+            loadingOverlay.style.display = isLoading ? 'flex' : 'none';
+        }
+
+        function resetWorkInfo() {
+            document.getElementById('clockInTime').textContent = '--:--';
+            document.getElementById('clockOutTime').textContent = '--:--';
+            document.getElementById('minClockOutTime').textContent = '--:--';
+            document.getElementById('countdown').textContent = '--:--';
+            document.getElementById('progressBar').style.width = '0%';
+            if (countdownInterval) clearInterval(countdownInterval);
+        }
+
+        let countdownInterval;
+
+        function startCountdown(targetTimeStr) {
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            const [hours, minutes] = targetTimeStr.split(':').map(Number);
+            const targetTime = new Date();
+            targetTime.setHours(hours, minutes, 0, 0);
+
+            const startTime = new Date(targetTime.getTime() - 9 * 60 * 60 * 1000);
+            const totalDuration = targetTime - startTime;
+
+            function update() {
+                const now = new Date();
+                const diff = targetTime - now;
+
+                const elapsed = now - startTime;
+                let progress = (elapsed / totalDuration) * 100;
+                progress = Math.max(0, Math.min(100, progress));
+                document.getElementById('progressBar').style.width = `${progress}%`;
+
+                if (diff <= 0) {
+                    document.getElementById('countdown').textContent = "00:00";
+                    return;
+                }
+
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                document.getElementById('countdown').textContent = `${h}:${String(m).padStart(2, '0')}`;
+
+                countdownInterval = requestAnimationFrame(update);
+            }
+
+            update();
+        }
+
+        function disableButtons() {
+            const btns = document.querySelectorAll('.btn');
+            btns.forEach(btn => {
+                btn.classList.add('disabled-look');
+                btn.classList.add('loading');
+            });
+        }
+
+        function enableButtons() {
+            const btns = document.querySelectorAll('.btn');
+            btns.forEach(btn => {
+                btn.classList.remove('disabled-look');
+                btn.classList.remove('loading');
+            });
+        }
+
+        window.handleClockInWrapper = () => {
+            disableButtons();
+            window.electronAPI.clockIn();
+        };
+
+        window.handleClockOutWrapper = () => {
+            disableButtons();
+            window.electronAPI.clockOut();
+        };
+
+        // Slide Panel Functions
+        let monthlyDataLoaded = false;
+
+        function slideToMonthly() {
+            document.getElementById('slideContainer').classList.add('slide-right');
+            document.getElementById('arrowRight').style.display = 'none';
+            document.getElementById('arrowLeft').style.display = 'flex';
+
+            if (!monthlyDataLoaded) {
+                loadMonthlyData();
+            }
+        }
+
+        function slideToMain() {
+            document.getElementById('slideContainer').classList.remove('slide-right');
+            document.getElementById('arrowRight').style.display = 'flex';
+            document.getElementById('arrowLeft').style.display = 'none';
+        }
+
+        async function loadMonthlyData() {
+            // ローディング表示をリセット
+            document.getElementById('monthlyLoading').innerHTML = '<div class="spinner" style="margin: 0 auto;"></div><div style="margin-top: 8px;">取得中...</div>';
+            document.getElementById('monthlyLoading').style.display = 'block';
+            document.getElementById('monthlyData').style.display = 'none';
+
+            const data = await window.electronAPI.getMonthlyWorkHours();
+
+            if (data) {
+                document.getElementById('workedTime').textContent = data.workedTime;
+                document.getElementById('requiredTime').textContent = data.requiredTime;
+
+                const diffEl = document.getElementById('diffTime');
+                diffEl.textContent = data.diffTime;
+
+                // Set color based on positive/negative
+                if (data.diffTime.startsWith('-')) {
+                    diffEl.classList.add('negative');
+                    diffEl.classList.remove('positive');
+                } else {
+                    diffEl.classList.add('positive');
+                    diffEl.classList.remove('negative');
+                }
+
+                // Daily diff
+                const dailyDiffEl = document.getElementById('dailyDiffTime');
+                dailyDiffEl.textContent = data.dailyDiffTime;
+                if (data.dailyDiffTime.startsWith('-')) {
+                    dailyDiffEl.classList.add('negative');
+                    dailyDiffEl.classList.remove('positive');
+                } else {
+                    dailyDiffEl.classList.add('positive');
+                    dailyDiffEl.classList.remove('negative');
+                }
+
+                document.getElementById('monthlyLoading').style.display = 'none';
+                document.getElementById('monthlyData').style.display = 'block';
+                monthlyDataLoaded = true;
+            }
+            // データがnullの場合はローディング表示のまま（バックグラウンドで取得中）
+        }
+
+        // Periodic button state check
+        setInterval(async () => {
+            const info = await window.electronAPI.getWorkInfo();
+            if (info && !info.isProcessing) {
+                enableButtons();
+            }
+        }, 2000);
+
+        updateTime();
+        setInterval(updateTime, 1000);
+        checkConfig();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,15 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+    clockIn: () => ipcRenderer.send('clock-in'),
+    clockOut: () => ipcRenderer.send('clock-out'),
+    closeWindow: () => ipcRenderer.send('close-popup'),
+    openSettings: () => ipcRenderer.send('open-settings'),
+    closeSettings: () => ipcRenderer.send('close-settings'),
+    getConfig: () => ipcRenderer.invoke('get-config'),
+    saveConfig: (config) => ipcRenderer.invoke('save-config', config),
+    isConfigured: () => ipcRenderer.invoke('is-configured'),
+    openManageOZO3: () => ipcRenderer.send('open-manage-ozo3'),
+    getWorkInfo: () => ipcRenderer.invoke('get-work-info'),
+    getMonthlyWorkHours: () => ipcRenderer.invoke('get-monthly-work-hours')
+});

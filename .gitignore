@@ -1,0 +1,10 @@
+node_modules/
+config.json
+session.json
+.gemini
+dist/
+out/
+.DS_Store
+Thumbs.db
+.vscode/
+*.log

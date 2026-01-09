@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ozo:extended Ranking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+            border-radius: 20px;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .label {
+            display: block;
+            font-size: 12px;
+            color: #8892b0;
+            margin-bottom: 6px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input:focus {
+            border-color: #00cec9;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .input::placeholder {
+            color: #6b7280;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #4cd137 0%, #00cec9 100%);
+            color: #fff;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(76, 209, 55, 0.4);
+        }
+
+        .btn-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: #8892b0;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .message {
+            text-align: center;
+            font-size: 12px;
+            margin-top: 12px;
+            padding: 8px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .message.success {
+            display: block;
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .message.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #4a5568;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #00cec9;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(18px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="title">⚙️ アカウント設定</div>
+
+    <div class="form-group">
+        <label class="label">メールアドレス</label>
+        <input type="email" class="input" id="userId" placeholder="">
+    </div>
+
+    <div class="form-group">
+        <label class="label">パスワード</label>
+        <input type="password" class="input" id="password" placeholder="">
+    </div>
+
+    <div class="form-group"
+        style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <label class="label" style="margin-bottom: 0;">バックグラウンド実行 <br><span
+                style="font-size: 10px; opacity: 0.7;">(ブラウザを表示しない)</span></label>
+        <label class="switch">
+            <input type="checkbox" id="headlessMode">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="form-group"
+        style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <label class="label" style="margin-bottom: 0;">工数管理の自動入力 <br><span
+                style="font-size: 10px; opacity: 0.7;">(１つ前の工数をコピーして<br>退勤打刻時に工数を自動入力します)</span></label>
+        <label class="switch">
+            <input type="checkbox" id="autoManHour">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="form-group"
+        style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <label class="label" style="margin-bottom: 0;">起動時に自動出勤 <br><span
+                style="font-size: 10px; opacity: 0.7;">(アプリ起動時に出勤処理を実行します)</span></label>
+        <label class="switch">
+            <input type="checkbox" id="autoClockIn">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-cancel" onclick="window.electronAPI.closeSettings()">キャンセル</button>
+        <button class="btn btn-save" onclick="saveSettings()">保存</button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <script>
+        // 設定を読み込み
+        window.addEventListener('DOMContentLoaded', async () => {
+            const config = await window.electronAPI.getConfig();
+            if (config) {
+                document.getElementById('userId').value = config.USER_ID || '';
+                document.getElementById('password').value = config.PASSWORD || '';
+                // デフォルトONに変更
+                document.getElementById('headlessMode').checked = config.HEADLESS_MODE !== undefined ? config.HEADLESS_MODE : true;
+                document.getElementById('autoManHour').checked = config.AUTO_MAN_HOUR !== undefined ? config.AUTO_MAN_HOUR : false;
+                document.getElementById('autoClockIn').checked = config.AUTO_CLOCK_IN !== undefined ? config.AUTO_CLOCK_IN : false; // Default OFF
+            }
+        });
+
+        // 設定を保存
+        async function saveSettings() {
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value;
+            const headlessMode = document.getElementById('headlessMode').checked;
+            const autoManHour = document.getElementById('autoManHour').checked;
+            const autoClockIn = document.getElementById('autoClockIn').checked;
+            const messageEl = document.getElementById('message');
+
+            if (!userId || !password) {
+                messageEl.textContent = 'MailとPasswordを入力してください';
+                messageEl.className = 'message error';
+                return;
+            }
+
+            const result = await window.electronAPI.saveConfig({
+                USER_ID: userId,
+                PASSWORD: password,
+                HEADLESS_MODE: headlessMode,
+                AUTO_MAN_HOUR: autoManHour,
+                AUTO_CLOCK_IN: autoClockIn
+            });
+
+            if (result.success) {
+                messageEl.textContent = '保存しました！';
+                messageEl.className = 'message success';
+                setTimeout(() => {
+                    window.electronAPI.closeSettings();
+                }, 1000);
+            } else {
+                messageEl.textContent = 'エラー: ' + result.error;
+                messageEl.className = 'message error';
+            }
+        }
+    </script>
+</body>
+
+</html>
