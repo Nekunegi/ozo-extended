@@ -177,10 +177,36 @@
         input:checked+.slider:before {
             transform: translateX(18px);
         }
+
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: transparent;
+            color: #8892b0;
+            transition: all 0.2s;
+            font-size: 24px;
+            /* 大きくして細く見せるか、svgにするか。ここではまずは文字調整 */
+            font-weight: 300;
+            line-height: 1;
+            z-index: 100;
+        }
+
+        .close-btn:hover {
+            color: #ff6b6b;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
 <body>
+    <div class="close-btn" onclick="window.electronAPI.closeSettings()" title="閉じる">×</div>
     <div class="title">⚙️ アカウント設定</div>
 
     <div class="form-group">
