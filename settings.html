@@ -18,6 +18,7 @@
             color: #fff;
             min-height: 100vh;
             padding: 20px;
+            padding-bottom: 70px;
             overflow-y: auto;
             border-radius: 20px;
         }
@@ -179,7 +180,7 @@
         }
 
         .close-btn {
-            position: absolute;
+            position: fixed;
             top: 16px;
             right: 16px;
             width: 24px;
@@ -202,12 +203,63 @@
             color: #ff6b6b;
             transform: scale(1.1);
         }
+
+        .section-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #00cec9;
+            margin-top: 16px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-group {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 20px;
+            background: linear-gradient(to top, #1a1a2e 80%, transparent);
+        }
+
+        .btn-group .btn-save {
+            width: 100%;
+        }
+
+        .footer-logo {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 0px;
+            font-size: 36px;
+            letter-spacing: 1px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+        }
+
+        .logo-ozo {
+            font-weight: 800;
+            color: transparent;
+            -webkit-text-stroke: 0.4px #00cec9;
+        }
+
+        .logo-colon {
+            font-weight: 500;
+            color: #8892b0;
+        }
+
+        .logo-extended {
+            font-weight: 500;
+            color: #8892b0;
+        }
     </style>
 </head>
 
 <body>
     <div class="close-btn" onclick="window.electronAPI.closeSettings()" title="閉じる">×</div>
-    <div class="title">⚙️ アカウント設定</div>
+    <div class="title">⚙️ 設定</div>
+
+    <div class="section-header">🔑 OZOアカウント設定</div>
 
     <div class="form-group">
         <label class="label">メールアドレス</label>
@@ -218,6 +270,8 @@
         <label class="label">パスワード</label>
         <input type="password" class="input" id="password" placeholder="">
     </div>
+
+    <div class="section-header">📱 アプリ設定</div>
 
     <div class="form-group"
         style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
@@ -260,7 +314,6 @@
     </div>
 
     <div class="btn-group">
-        <button class="btn btn-cancel" onclick="window.electronAPI.closeSettings()">キャンセル</button>
         <button class="btn btn-save" onclick="saveSettings()">保存</button>
     </div>
 
@@ -276,6 +329,12 @@
         </button>
         <div id="updateMessage"
             style="text-align: center; font-size: 11px; margin-top: 8px; color: #8892b0; display: none;"></div>
+    </div>
+
+    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;"></div>
+
+    <div class="footer-logo">
+        <span class="logo-ozo">ozo</span><span class="logo-colon">:</span><span class="logo-extended">extended</span>
     </div>
 
     <script>
