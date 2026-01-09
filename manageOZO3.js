@@ -1,9 +1,10 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
+const { app } = require('electron'); // Electron app for path
 
 const LOGIN_URL = 'https://manage.ozo-cloud.jp/ozo/default.cfm?version=fixer';
-const STORAGE_STATE_PATH = path.join(__dirname, 'session.json');
+const STORAGE_STATE_PATH = path.join(app.getPath('userData'), 'session.json');
 
 class ManageOZO3 {
     constructor() {
@@ -14,7 +15,7 @@ class ManageOZO3 {
 
     // 設定ファイルから認証情報を読み込み
     loadCredentials() {
-        const configPath = path.join(__dirname, 'config.json');
+        const configPath = path.join(app.getPath('userData'), 'config.json');
         if (!fs.existsSync(configPath)) {
             throw new Error('config.json が見つかりません。');
         }

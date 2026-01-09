@@ -32,7 +32,7 @@ let fetchInterval = null;
 
 const FETCH_INTERVAL_MS = 30 * 60 * 1000; // 30分ごとに更新
 
-const CONFIG_PATH = path.join(__dirname, 'config.json');
+const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
 // 設定ファイルを読み込み
 function loadConfig() {
