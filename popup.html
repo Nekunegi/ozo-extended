@@ -463,7 +463,7 @@
 
                 <div class="container" id="setupPrompt" style="display: none;">
                     <p style="text-align: center; color: #8892b0; font-size: 12px; margin-bottom: 12px;">
-                        MailとPasswordを<br>設定してください
+                        メールアドレスと<br>パスワードを設定してください
                     </p>
                     <button class="btn btn-clock-in" onclick="window.electronAPI.openSettings()">
                         <span class="btn-content">
@@ -509,6 +509,11 @@
         </div>
     </div>
 
+    <div id="versionDisplay"
+        style="position: fixed; bottom: 4px; right: 8px; font-size: 10px; color: rgba(255, 255, 255, 0.3); pointer-events: none; z-index: 1000;">
+        v-.--.-
+    </div>
+
     <script>
         function updateTime() {
             const now = new Date();
@@ -518,8 +523,15 @@
             document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
         }
 
+        let isConfiguredState = null;
+
         async function checkConfig() {
             const configured = await window.electronAPI.isConfigured();
+
+            // 状態が変わった場合のみDOM更新
+            if (isConfiguredState === configured) return;
+            isConfiguredState = configured;
+
             if (configured) {
                 document.getElementById('mainButtons').style.display = 'flex';
                 document.getElementById('setupPrompt').style.display = 'none';
@@ -716,16 +728,29 @@
         }
 
         // Periodic button state check
+        // Periodic check
         setInterval(async () => {
-            const info = await window.electronAPI.getWorkInfo();
-            if (info && !info.isProcessing) {
-                enableButtons();
+            // 設定状態の監視
+            await checkConfig();
+
+            // 設定されている場合のみ勤務状況更新
+            if (isConfiguredState) {
+                const info = await window.electronAPI.getWorkInfo();
+                if (info && !info.isProcessing) {
+                    enableButtons();
+                }
             }
         }, 2000);
 
         updateTime();
         setInterval(updateTime, 1000);
         checkConfig();
+
+        // Get and display version
+        (async () => {
+            const ver = await window.electronAPI.getAppVersion();
+            document.getElementById('versionDisplay').textContent = `v${ver}`;
+        })();
     </script>
 </body>
 

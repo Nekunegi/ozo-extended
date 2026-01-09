@@ -251,6 +251,10 @@ app.whenReady().then(() => {
       config.PASSWORD.trim() !== '';
   });
 
+  ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
+  });
+
   ipcMain.handle('get-work-info', async () => {
     let info = workInfoCache;
 
