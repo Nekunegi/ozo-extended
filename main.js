@@ -533,19 +533,10 @@ function setupAutoUpdater() {
 
   autoUpdater.on('update-downloaded', (info) => {
     log.info('Update downloaded');
+    showNotification('ozo:extended', '新しいバージョンをインストールするため、3秒後に再起動します。');
 
-    const dialogOpts = {
-      type: 'info',
-      buttons: ['再起動して適用', '後で'],
-      title: 'アップデートあり',
-      message: '新しいバージョンがダウンロードされました。',
-      detail: '再起動してアップデートを適用しますか？'
-    };
-
-    dialog.showMessageBox(dialogOpts).then((returnValue) => {
-      if (returnValue.response === 0) {
-        autoUpdater.quitAndInstall();
-      }
-    });
+    setTimeout(() => {
+      autoUpdater.quitAndInstall();
+    }, 3000);
   });
 }
