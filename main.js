@@ -180,6 +180,9 @@ function showPopupWindow() {
 }
 
 function showNotification(title, body) {
+  if (popupWindow && popupWindow.isVisible() && !popupWindow.isMinimized()) {
+    return;
+  }
   new Notification({ title, body }).show();
 }
 
@@ -233,14 +236,14 @@ app.whenReady().then(() => {
   });
 
   // IPC イベントハンドラ
-  ipcMain.on('clock-in', async () => {
-    if (popupWindow) popupWindow.hide();
-    await handleClockIn();
+  ipcMain.handle('clock-in', async () => {
+    // 処理中は閉じない
+    return await handleClockIn();
   });
 
-  ipcMain.on('clock-out', async () => {
-    if (popupWindow) popupWindow.hide();
-    await handleClockOut();
+  ipcMain.handle('clock-out', async () => {
+    // 処理中は閉じない
+    return await handleClockOut();
   });
 
   ipcMain.on('close-popup', () => {
@@ -496,9 +499,11 @@ async function handleClockIn() {
     } else {
       showNotification('ozo:extended', result.message);
     }
+    return result;
   } catch (error) {
     console.error('出勤処理エラー:', error);
     showNotification('ozo:extended', '出勤処理に失敗しました: ' + error.message);
+    return { success: false, message: 'エラー: ' + error.message };
   } finally {
     if (ozo3) await ozo3.close();
     isProcessing = false;
@@ -542,9 +547,11 @@ async function handleClockOut() {
     } else {
       showNotification('ozo:extended', result.message);
     }
+    return result;
   } catch (error) {
     console.error('退勤処理エラー:', error);
     showNotification('ozo:extended', '退勤処理に失敗しました: ' + error.message);
+    return { success: false, message: 'エラー: ' + error.message };
   } finally {
     if (ozo3) await ozo3.close();
     isProcessing = false;
