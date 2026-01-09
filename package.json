@@ -1,7 +1,7 @@
 {
   "name": "ozo-extended",
   "productName": "ozo-extended",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "出勤管理ツール",
   "main": "main.js",
   "scripts": {

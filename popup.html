@@ -461,8 +461,10 @@
                         MailとPasswordを<br>設定してください
                     </p>
                     <button class="btn btn-clock-in" onclick="window.electronAPI.openSettings()">
-                        <span class="btn-icon">⚙️</span>
-                        <span>設定を開く</span>
+                        <span class="btn-content">
+                            <span class="btn-icon">⚙️</span>
+                            <span>設定を開く</span>
+                        </span>
                     </button>
                 </div>
             </div>
@@ -658,6 +660,15 @@
         }
 
         async function loadMonthlyData() {
+            // 設定確認
+            const isConfigured = await window.electronAPI.isConfigured();
+            if (!isConfigured) {
+                document.getElementById('monthlyLoading').innerHTML = '<div style="color: #ff6b6b; font-size: 12px; text-align: center;">表示できません<br>(設定が必要です)</div>';
+                document.getElementById('monthlyLoading').style.display = 'block';
+                document.getElementById('monthlyData').style.display = 'none';
+                return;
+            }
+
             // ローディング表示をリセット
             document.getElementById('monthlyLoading').innerHTML = '<div class="spinner" style="margin: 0 auto;"></div><div style="margin-top: 8px;">取得中...</div>';
             document.getElementById('monthlyLoading').style.display = 'block';
