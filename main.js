@@ -105,7 +105,7 @@ function createSettingsWindow() {
 
   settingsWindow = new BrowserWindow({
     width: 280,
-    height: 460,
+    height: 550,
     backgroundColor: '#1a1a2e',
     frame: false,
     resizable: false,
