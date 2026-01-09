@@ -193,10 +193,12 @@ app.whenReady().then(() => {
   // 自動起動設定の同期
   const config = loadConfig();
   const autoLaunch = config.AUTO_LAUNCH !== undefined ? config.AUTO_LAUNCH : true;
-  app.setLoginItemSettings({
-    openAtLogin: autoLaunch,
-    path: app.getPath('exe')
-  });
+  if (app.isPackaged) {
+    app.setLoginItemSettings({
+      openAtLogin: autoLaunch,
+      path: app.getPath('exe')
+    });
+  }
 
   // アイコンを読み込み（32x32で高品質に）
   const iconPath = path.join(__dirname, 'icon.png');
@@ -272,10 +274,12 @@ app.whenReady().then(() => {
   ipcMain.handle('save-config', (event, config) => {
     // 自動起動設定を反映
     const autoLaunch = config.AUTO_LAUNCH !== undefined ? config.AUTO_LAUNCH : true;
-    app.setLoginItemSettings({
-      openAtLogin: autoLaunch,
-      path: app.getPath('exe')
-    });
+    if (app.isPackaged) {
+      app.setLoginItemSettings({
+        openAtLogin: autoLaunch,
+        path: app.getPath('exe')
+      });
+    }
 
     const result = saveConfig(config);
     if (result.success) {
