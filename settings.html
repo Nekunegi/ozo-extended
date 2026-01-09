@@ -205,6 +205,16 @@
 
     <div class="form-group"
         style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <label class="label" style="margin-bottom: 0;">PC起動時に自動起動 <br><span
+                style="font-size: 10px; opacity: 0.7;">(Windowsログイン時に起動します)</span></label>
+        <label class="switch">
+            <input type="checkbox" id="autoLaunch">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="form-group"
+        style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
         <label class="label" style="margin-bottom: 0;">工数管理の自動入力 <br><span
                 style="font-size: 10px; opacity: 0.7;">(１つ前の工数をコピーして<br>退勤打刻時に工数を自動入力します)</span></label>
         <label class="switch">
@@ -230,15 +240,31 @@
 
     <div class="message" id="message"></div>
 
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="text-align: center; margin-bottom: 12px; font-size: 12px; color: #8892b0;">
+            Version: <span id="currentVersion">...</span>
+        </div>
+        <button id="btnCheckUpdate" class="btn" style="background: rgba(255,255,255,0.1); width: 100%; color: #fff;"
+            onclick="checkForUpdates()">
+            アップデートを確認
+        </button>
+        <div id="updateMessage"
+            style="text-align: center; font-size: 11px; margin-top: 8px; color: #8892b0; display: none;"></div>
+    </div>
+
     <script>
         // 設定を読み込み
         window.addEventListener('DOMContentLoaded', async () => {
+            const version = await window.electronAPI.getAppVersion();
+            document.getElementById('currentVersion').textContent = 'v' + version;
+
             const config = await window.electronAPI.getConfig();
             if (config) {
                 document.getElementById('userId').value = config.USER_ID || '';
                 document.getElementById('password').value = config.PASSWORD || '';
                 // デフォルトONに変更
                 document.getElementById('headlessMode').checked = config.HEADLESS_MODE !== undefined ? config.HEADLESS_MODE : true;
+                document.getElementById('autoLaunch').checked = config.AUTO_LAUNCH !== undefined ? config.AUTO_LAUNCH : true; // Default ON
                 document.getElementById('autoManHour').checked = config.AUTO_MAN_HOUR !== undefined ? config.AUTO_MAN_HOUR : false;
                 document.getElementById('autoClockIn').checked = config.AUTO_CLOCK_IN !== undefined ? config.AUTO_CLOCK_IN : false; // Default OFF
             }
@@ -249,6 +275,7 @@
             const userId = document.getElementById('userId').value.trim();
             const password = document.getElementById('password').value;
             const headlessMode = document.getElementById('headlessMode').checked;
+            const autoLaunch = document.getElementById('autoLaunch').checked;
             const autoManHour = document.getElementById('autoManHour').checked;
             const autoClockIn = document.getElementById('autoClockIn').checked;
             const messageEl = document.getElementById('message');
@@ -263,6 +290,7 @@
                 USER_ID: userId,
                 PASSWORD: password,
                 HEADLESS_MODE: headlessMode,
+                AUTO_LAUNCH: autoLaunch,
                 AUTO_MAN_HOUR: autoManHour,
                 AUTO_CLOCK_IN: autoClockIn
             });
@@ -276,6 +304,37 @@
             } else {
                 messageEl.textContent = 'エラー: ' + result.error;
                 messageEl.className = 'message error';
+            }
+        }
+
+        async function checkForUpdates() {
+            const btn = document.getElementById('btnCheckUpdate');
+            const msg = document.getElementById('updateMessage');
+
+            btn.disabled = true;
+            btn.textContent = '確認中...';
+            btn.style.opacity = '0.7';
+            msg.style.display = 'none';
+
+            try {
+                const result = await window.electronAPI.checkForUpdates();
+
+                msg.style.display = 'block';
+                if (result.success) {
+                    msg.textContent = result.message;
+                    msg.style.color = result.updateAvailable ? '#22c55e' : '#8892b0';
+                } else {
+                    msg.textContent = result.message;
+                    msg.style.color = '#ef4444';
+                }
+            } catch (e) {
+                msg.style.display = 'block';
+                msg.textContent = 'エラーが発生しました';
+                msg.style.color = '#ef4444';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'アップデートを確認';
+                btn.style.opacity = '1';
             }
         }
     </script>

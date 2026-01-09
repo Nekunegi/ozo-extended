@@ -34,6 +34,29 @@ const FETCH_INTERVAL_MS = 30 * 60 * 1000; // 30分ごとに更新
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
+// 多重起動防止
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // 2つ目のインスタンスが起動された時、ポップアップを表示
+    if (popupWindow) {
+      showPopupWindow();
+    } else {
+      createPopupWindow();
+      showPopupWindow();
+    }
+
+    // 設定画面が開いていればフォーカス
+    if (settingsWindow) {
+      if (settingsWindow.isMinimized()) settingsWindow.restore();
+      settingsWindow.focus();
+    }
+  });
+}
+
 // 設定ファイルを読み込み
 function loadConfig() {
   try {
@@ -164,6 +187,14 @@ app.whenReady().then(() => {
   setupAutoUpdater();
   autoUpdater.checkForUpdatesAndNotify();
 
+  // 自動起動設定の同期
+  const config = loadConfig();
+  const autoLaunch = config.AUTO_LAUNCH !== undefined ? config.AUTO_LAUNCH : true;
+  app.setLoginItemSettings({
+    openAtLogin: autoLaunch,
+    path: app.getPath('exe')
+  });
+
   // アイコンを読み込み（32x32で高品質に）
   const iconPath = path.join(__dirname, 'icon.png');
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 32, height: 32 });
@@ -236,6 +267,13 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('save-config', (event, config) => {
+    // 自動起動設定を反映
+    const autoLaunch = config.AUTO_LAUNCH !== undefined ? config.AUTO_LAUNCH : true;
+    app.setLoginItemSettings({
+      openAtLogin: autoLaunch,
+      path: app.getPath('exe')
+    });
+
     const result = saveConfig(config);
     if (result.success) {
       // 設定保存後に定期実行を再スケジュール
@@ -253,6 +291,22 @@ app.whenReady().then(() => {
 
   ipcMain.handle('get-app-version', () => {
     return app.getVersion();
+  });
+
+  ipcMain.handle('check-for-updates', async () => {
+    if (!app.isPackaged) {
+      return { success: false, message: '開発環境ではアップデート確認できません。' };
+    }
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      if (result && result.updateInfo.version !== app.getVersion()) {
+        return { success: true, updateAvailable: true, version: result.updateInfo.version, message: `新しいバージョン (v${result.updateInfo.version}) が利用可能です。` };
+      } else {
+        return { success: true, updateAvailable: false, message: '最新バージョンです。' };
+      }
+    } catch (e) {
+      return { success: false, message: '確認エラー: ' + e.message };
+    }
   });
 
   ipcMain.handle('get-work-info', async () => {
@@ -289,9 +343,9 @@ app.whenReady().then(() => {
   // 初回起動時の背景取得開始
   startBackgroundFetch();
   // 初回即時実行（設定済みなら）
-  const config = loadConfig();
-  if (config.USER_ID && config.PASSWORD) {
-    if (config.AUTO_CLOCK_IN) {
+  const startupConfig = loadConfig();
+  if (startupConfig.USER_ID && startupConfig.PASSWORD) {
+    if (startupConfig.AUTO_CLOCK_IN) {
       // 自動出勤がONなら出勤処理を実行（月次情報も取得）
       handleClockIn().then(() => fetchMonthlyWorkHours());
     } else {

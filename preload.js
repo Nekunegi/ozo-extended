@@ -12,5 +12,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openManageOZO3: () => ipcRenderer.send('open-manage-ozo3'),
     getWorkInfo: () => ipcRenderer.invoke('get-work-info'),
     getMonthlyWorkHours: () => ipcRenderer.invoke('get-monthly-work-hours'),
-    getAppVersion: () => ipcRenderer.invoke('get-app-version')
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates')
 });
