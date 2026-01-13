@@ -88,8 +88,9 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            padding: 8px 12px;
-            flex: 1;
+            padding: 0;
+            height: 44px;
+            width: 100%;
             border: none;
             border-radius: 12px;
             font-size: 14px;
@@ -97,6 +98,82 @@
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
+            box-sizing: border-box;
+        }
+
+        /* 2分割退勤ボタンコンテナ */
+        .clock-out-container {
+            display: none;
+            flex-direction: row;
+            gap: 6px;
+            width: 100%;
+            height: 44px;
+        }
+
+        /* 退勤ボタン（左・右共通） */
+        .btn-clock-out-left,
+        .btn-clock-out-right {
+            flex: 1;
+            /* 均等分割 */
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            padding: 0;
+        }
+
+        /* 左ボタン固有 */
+        .btn-clock-out-left {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px 4px 4px 12px;
+        }
+
+        .btn-clock-out-left:hover {
+            background: linear-gradient(135deg, #768efa 0%, #865bb2 100%);
+        }
+
+        /* 右ボタン固有 */
+        .btn-clock-out-right {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            border-radius: 4px 12px 12px 4px;
+        }
+
+        .btn-clock-out-right:hover {
+            background: linear-gradient(135deg, #21a99e 0%, #48ff8d 100%);
+        }
+
+        /* 右ボタンの中身レイアウト */
+        .btn-clock-out-right .btn-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 右ボタン上段（アイコン＋退勤） */
+        .btn-clock-out-right .main-text {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        /* 右ボタン下段（工数自動） */
+        .btn-clock-out-right .btn-sub {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1;
+            white-space: nowrap;
         }
 
         .btn:hover {
@@ -126,51 +203,8 @@
             background: linear-gradient(135deg, #768efa 0%, #865bb2 100%);
         }
 
-        /* 2分割退勤ボタン用スタイル */
-        .clock-out-container {
-            display: none;
-            flex: 1;
-            gap: 4px;
-        }
 
-        .btn-clock-out-left {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            border-radius: 12px 4px 4px 12px;
-            flex: 1;
-            min-width: 0;
-        }
 
-        .btn-clock-out-left:hover {
-            background: linear-gradient(135deg, #768efa 0%, #865bb2 100%);
-        }
-
-        .btn-clock-out-right {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-            color: #fff;
-            border-radius: 4px 12px 12px 4px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .btn-clock-out-right:hover {
-            background: linear-gradient(135deg, #5CBF60 0%, #55b059 100%);
-        }
-
-        .btn-clock-out-left .btn-content {
-            font-size: 14px;
-        }
-
-        .btn-clock-out-right .btn-content {
-            font-size: 10px;
-            flex-direction: column;
-            gap: 0;
-            line-height: 1.2;
-        }
-
-        .btn-clock-out-right .btn-icon {
-            font-size: 16px;
-        }
 
         .btn-icon {
             font-size: 20px;
@@ -560,11 +594,11 @@
                             </span>
                         </button>
                         <button id="btnClockOutAuto" class="btn btn-clock-out-right"
-                            onclick="window.handleClockOutAutoWrapper()" title="１つ前の工数をコピーして自動入力">
+                            onclick="window.handleClockOutAutoWrapper()" title="退勤＆工数自動入力（前日の工数をコピー）">
                             <span class="btn-spinner"></span>
                             <span class="btn-content">
-                                <span class="btn-icon">🏠</span>
-                                <span>退勤＆<br>工数自動</span>
+                                <span class="main-text"><span class="btn-icon">🏠</span>退勤</span>
+                                <span class="btn-sub">(工数自動)</span>
                             </span>
                         </button>
                     </div>
@@ -623,6 +657,25 @@
         v-.--.-
     </div>
 
+    <!-- ネットワークエラーオーバーレイ -->
+    <div id="networkErrorOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(26, 26, 46, 0.95); backdrop-filter: blur(10px);
+        display: none; flex-direction: column; align-items: center; justify-content: center;
+        z-index: 2000; padding: 16px; color: #fff; text-align: center; border-radius: 32px;">
+        <div style="font-size: 40px; margin-bottom: 8px;">📡</div>
+        <div style="font-size: 14px; font-weight: bold; color: #ff6b6b; margin-bottom: 8px;">
+            ネットワーク未接続
+        </div>
+        <div style="font-size: 11px; color: #8892b0; line-height: 1.5;">
+            インターネットに接続されていません。<br>
+            接続を確認してから再度お試しください。
+        </div>
+        <button onclick="retryNetworkCheck()" style="margin-top: 16px; padding: 8px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+            🔄 再試行
+        </button>
+    </div>
+
     <div id="processingOverlay" class="processing-overlay">
         <div class="spinner" style="width: 32px; height: 32px; border-width: 3px; border-top-color: #00cec9;"></div>
         <div class="processing-message">
@@ -640,6 +693,34 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // ネットワーク接続チェック
+        async function checkNetworkAndShowOverlay() {
+            const isOnline = await window.electronAPI.checkNetwork();
+            const overlay = document.getElementById('networkErrorOverlay');
+            if (!isOnline) {
+                overlay.style.display = 'flex';
+            } else {
+                overlay.style.display = 'none';
+            }
+            return isOnline;
+        }
+
+        async function retryNetworkCheck() {
+            const btn = event.target;
+            btn.textContent = '確認中...';
+            btn.disabled = true;
+
+            const isOnline = await checkNetworkAndShowOverlay();
+
+            if (isOnline) {
+                // 接続復帰したら情報を再取得
+                await checkConfig();
+            }
+
+            btn.textContent = '🔄 再試行';
+            btn.disabled = false;
         }
 
         let isConfiguredState = null;
@@ -941,6 +1022,10 @@
 
         updateTime();
         setInterval(updateTime, 1000);
+
+        // 起動時にネットワーク接続をチェック
+        checkNetworkAndShowOverlay();
+
         checkConfig();
 
         // Get and display version

@@ -19,6 +19,23 @@ if (process.platform === 'win32') {
   }
 }
 
+// ネットワーク接続チェック
+async function checkNetworkConnection() {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const req = https.get('https://manage.ozo-cloud.jp', { timeout: 5000 }, (res) => {
+      resolve(true);
+    });
+    req.on('error', () => {
+      resolve(false);
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+}
+
 // Playwrightのブラウザがインストールされているか確認し、なければインストール
 async function ensurePlaywrightBrowsers() {
   try {
@@ -362,9 +379,19 @@ app.whenReady().then(async () => {
       config.PASSWORD.trim() !== '';
   });
 
+  ipcMain.handle('check-network', async () => {
+    return await checkNetworkConnection();
+  });
+
   ipcMain.handle('test-login', async (event, userId, password) => {
     if (!userId || !password) {
       return { success: false, message: 'メールアドレスとパスワードを入力してください。' };
+    }
+
+    // ネットワーク接続チェック
+    const isOnline = await checkNetworkConnection();
+    if (!isOnline) {
+      return { success: false, message: 'ネットワークに接続されていません。インターネット接続を確認してください。' };
     }
 
     const { chromium } = require('playwright');
@@ -643,7 +670,14 @@ function startBackgroundFetch() {
 async function handleClockIn() {
   if (isProcessing || mutex.isLocked()) {
     showNotification('ozo:extended', '他の処理が実行中です。しばらくお待ちください。');
-    return;
+    return { success: false, message: '他の処理が実行中です。' };
+  }
+
+  // ネットワーク接続チェック
+  const isOnline = await checkNetworkConnection();
+  if (!isOnline) {
+    showNotification('ozo:extended', 'ネットワークに接続されていません。');
+    return { success: false, message: 'ネットワークに接続されていません。インターネット接続を確認してください。' };
   }
 
   const release = await mutex.acquire();
@@ -686,7 +720,14 @@ async function handleClockIn() {
 async function handleClockOut(autoManHour = false) {
   if (isProcessing || mutex.isLocked()) {
     showNotification('ozo:extended', '他の処理が実行中です。しばらくお待ちください。');
-    return;
+    return { success: false, message: '他の処理が実行中です。' };
+  }
+
+  // ネットワーク接続チェック
+  const isOnline = await checkNetworkConnection();
+  if (!isOnline) {
+    showNotification('ozo:extended', 'ネットワークに接続されていません。');
+    return { success: false, message: 'ネットワークに接続されていません。インターネット接続を確認してください。' };
   }
 
   const release = await mutex.acquire();
