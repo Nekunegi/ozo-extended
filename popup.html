@@ -126,6 +126,52 @@
             background: linear-gradient(135deg, #768efa 0%, #865bb2 100%);
         }
 
+        /* 2分割退勤ボタン用スタイル */
+        .clock-out-container {
+            display: none;
+            flex: 1;
+            gap: 4px;
+        }
+
+        .btn-clock-out-left {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-radius: 12px 4px 4px 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .btn-clock-out-left:hover {
+            background: linear-gradient(135deg, #768efa 0%, #865bb2 100%);
+        }
+
+        .btn-clock-out-right {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: #fff;
+            border-radius: 4px 12px 12px 4px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .btn-clock-out-right:hover {
+            background: linear-gradient(135deg, #5CBF60 0%, #55b059 100%);
+        }
+
+        .btn-clock-out-left .btn-content {
+            font-size: 14px;
+        }
+
+        .btn-clock-out-right .btn-content {
+            font-size: 10px;
+            flex-direction: column;
+            gap: 0;
+            line-height: 1.2;
+        }
+
+        .btn-clock-out-right .btn-icon {
+            font-size: 16px;
+        }
+
         .btn-icon {
             font-size: 20px;
         }
@@ -503,14 +549,25 @@
                             <span>出勤</span>
                         </span>
                     </button>
-                    <button id="btnClockOut" class="btn btn-clock-out" onclick="window.handleClockOutWrapper()"
-                        style="display: none;">
-                        <span class="btn-spinner"></span>
-                        <span class="btn-content">
-                            <span class="btn-icon">🏠</span>
-                            <span>退勤</span>
-                        </span>
-                    </button>
+                    <!-- 2分割退勤ボタン -->
+                    <div id="clockOutContainer" class="clock-out-container">
+                        <button id="btnClockOut" class="btn btn-clock-out-left"
+                            onclick="window.handleClockOutWrapper()">
+                            <span class="btn-spinner"></span>
+                            <span class="btn-content">
+                                <span class="btn-icon">🏠</span>
+                                <span>退勤</span>
+                            </span>
+                        </button>
+                        <button id="btnClockOutAuto" class="btn btn-clock-out-right"
+                            onclick="window.handleClockOutAutoWrapper()" title="１つ前の工数をコピーして自動入力">
+                            <span class="btn-spinner"></span>
+                            <span class="btn-content">
+                                <span class="btn-icon">🏠</span>
+                                <span>退勤＆<br>工数自動</span>
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="container" id="setupPrompt" style="display: none;">
@@ -621,11 +678,11 @@
             setLoading(false);
 
             const btnClockIn = document.getElementById('btnClockIn');
-            const btnClockOut = document.getElementById('btnClockOut');
+            const clockOutContainer = document.getElementById('clockOutContainer');
 
             if (info && info.clockedIn) {
                 if (btnClockIn) btnClockIn.style.display = 'none';
-                if (btnClockOut) btnClockOut.style.display = 'flex';
+                if (clockOutContainer) clockOutContainer.style.display = 'flex';
 
                 document.getElementById('clockInTime').textContent = info.clockInTime;
                 document.getElementById('clockOutTime').textContent = info.clockOutTime ? info.clockOutTime : '--:--';
@@ -637,7 +694,7 @@
                     btnClockIn.style.display = 'flex';
                     btnClockIn.classList.remove('disabled-look');
                 }
-                if (btnClockOut) btnClockOut.style.display = 'none';
+                if (clockOutContainer) clockOutContainer.style.display = 'none';
                 resetWorkInfo();
             }
         }
@@ -791,6 +848,7 @@
 
         window.handleClockInWrapper = () => processClockAction(() => window.electronAPI.clockIn());
         window.handleClockOutWrapper = () => processClockAction(() => window.electronAPI.clockOut());
+        window.handleClockOutAutoWrapper = () => processClockAction(() => window.electronAPI.clockOutWithAutoManHour());
 
         function showProcessingOverlay() {
             document.getElementById('processingOverlay').style.display = 'flex';

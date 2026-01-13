@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
     clockIn: () => ipcRenderer.invoke('clock-in'),
     clockOut: () => ipcRenderer.invoke('clock-out'),
+    clockOutWithAutoManHour: () => ipcRenderer.invoke('clock-out-with-auto-man-hour'),
     closeWindow: () => ipcRenderer.send('close-popup'),
     openSettings: () => ipcRenderer.send('open-settings'),
     closeSettings: () => ipcRenderer.send('close-settings'),

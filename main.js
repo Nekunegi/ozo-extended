@@ -306,7 +306,12 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('clock-out', async () => {
     // 処理中は閉じない
-    return await handleClockOut();
+    return await handleClockOut(false);
+  });
+
+  ipcMain.handle('clock-out-with-auto-man-hour', async () => {
+    // 工数自動入力付き退勤
+    return await handleClockOut(true);
   });
 
   ipcMain.on('close-popup', () => {
@@ -576,7 +581,7 @@ async function handleClockIn() {
   }
 }
 
-async function handleClockOut() {
+async function handleClockOut(autoManHour = false) {
   if (isProcessing || mutex.isLocked()) {
     showNotification('ozo:extended', '他の処理が実行中です。しばらくお待ちください。');
     return;
@@ -585,7 +590,8 @@ async function handleClockOut() {
   const release = await mutex.acquire();
   try {
     isProcessing = true;
-    showNotification('ozo:extended', '退勤・工数入力処理を開始します...');
+    const modeText = autoManHour ? '退勤・工数自動入力処理' : '退勤・工数入力処理';
+    showNotification('ozo:extended', `${modeText}を開始します...`);
 
     const config = loadConfig();
     const headless = config.HEADLESS_MODE !== undefined ? config.HEADLESS_MODE : true; // Default True
@@ -593,8 +599,6 @@ async function handleClockOut() {
     await ozo3.login();
     // 強制工数入力モードは常にON
     const forceManHour = true;
-    // 工数自動入力（デフォルトOFFに変更）
-    const autoManHour = config.AUTO_MAN_HOUR !== undefined ? config.AUTO_MAN_HOUR : false;
 
     const result = await ozo3.clockOut(forceManHour, autoManHour);
 

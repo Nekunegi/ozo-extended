@@ -293,15 +293,7 @@
         </label>
     </div>
 
-    <div class="form-group"
-        style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-        <label class="label" style="margin-bottom: 0;">工数管理の自動入力 <br><span
-                style="font-size: 10px; opacity: 0.7;">(１つ前の工数をコピーして<br>退勤打刻時に工数を自動入力します)</span></label>
-        <label class="switch">
-            <input type="checkbox" id="autoManHour">
-            <span class="slider"></span>
-        </label>
-    </div>
+
 
     <div class="form-group"
         style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
@@ -350,7 +342,6 @@
                 // デフォルトONに変更
                 document.getElementById('headlessMode').checked = config.HEADLESS_MODE !== undefined ? config.HEADLESS_MODE : true;
                 document.getElementById('autoLaunch').checked = config.AUTO_LAUNCH !== undefined ? config.AUTO_LAUNCH : true; // Default ON
-                document.getElementById('autoManHour').checked = config.AUTO_MAN_HOUR !== undefined ? config.AUTO_MAN_HOUR : false;
                 document.getElementById('autoClockIn').checked = config.AUTO_CLOCK_IN !== undefined ? config.AUTO_CLOCK_IN : false; // Default OFF
             }
         });
@@ -361,7 +352,6 @@
             const password = document.getElementById('password').value;
             const headlessMode = document.getElementById('headlessMode').checked;
             const autoLaunch = document.getElementById('autoLaunch').checked;
-            const autoManHour = document.getElementById('autoManHour').checked;
             const autoClockIn = document.getElementById('autoClockIn').checked;
             const messageEl = document.getElementById('message');
 
@@ -376,7 +366,6 @@
                 PASSWORD: password,
                 HEADLESS_MODE: headlessMode,
                 AUTO_LAUNCH: autoLaunch,
-                AUTO_MAN_HOUR: autoManHour,
                 AUTO_CLOCK_IN: autoClockIn
             });
 
