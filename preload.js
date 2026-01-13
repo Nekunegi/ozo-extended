@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getWorkInfo: () => ipcRenderer.invoke('get-work-info'),
     getMonthlyWorkHours: () => ipcRenderer.invoke('get-monthly-work-hours'),
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-    checkForUpdates: () => ipcRenderer.invoke('check-for-updates')
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    testLogin: (userId, password) => ipcRenderer.invoke('test-login', userId, password)
 });

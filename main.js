@@ -362,6 +362,108 @@ app.whenReady().then(async () => {
       config.PASSWORD.trim() !== '';
   });
 
+  ipcMain.handle('test-login', async (event, userId, password) => {
+    if (!userId || !password) {
+      return { success: false, message: 'メールアドレスとパスワードを入力してください。' };
+    }
+
+    const { chromium } = require('playwright');
+    let browser = null;
+
+    try {
+      const config = loadConfig();
+      const headless = config.HEADLESS_MODE !== undefined ? config.HEADLESS_MODE : true;
+
+      // 新しいブラウザを起動（Cookieなし）
+      browser = await chromium.launch({
+        headless: headless,
+        slowMo: 100
+      });
+
+      // 新しいコンテキストを作成（storageStateなし = Cookieなし）
+      const context = await browser.newContext();
+      const page = await context.newPage();
+
+      console.log('ログインテスト: ページを開きます...');
+      await page.goto('https://manage.ozo-cloud.jp/ozo/default.cfm?version=fixer');
+      await page.waitForLoadState('networkidle');
+
+      await page.waitForTimeout(2000);
+
+      // ログイン画面かどうか確認
+      if (!page.url().includes('login.microsoftonline.com')) {
+        await browser.close();
+        return { success: false, message: '予期しない画面です。OZOのURLを確認してください。' };
+      }
+
+      // Step 1: USER_ID入力
+      console.log('ログインテスト: USER_ID入力...');
+      await page.waitForSelector('#i0116', { timeout: 30000 });
+      await page.fill('#i0116', userId);
+      await page.click('#idSIButton9');
+      await page.waitForLoadState('networkidle');
+
+      await page.waitForTimeout(2000);
+
+      // Step 2: PASSWORD入力
+      console.log('ログインテスト: PASSWORD入力...');
+      try {
+        await page.waitForSelector('#i0118', { timeout: 10000 });
+        await page.fill('#i0118', password);
+        await page.click('#idSIButton9');
+        await page.waitForLoadState('networkidle');
+      } catch (e) {
+        await browser.close();
+        return { success: false, message: 'パスワード入力画面が表示されませんでした。メールアドレスを確認してください。' };
+      }
+
+      // エラーメッセージがあるかチェック
+      await page.waitForTimeout(2000);
+
+      // パスワードエラーの確認
+      const errorVisible = await page.isVisible('#passwordError');
+      if (errorVisible) {
+        const errorText = await page.textContent('#passwordError');
+        await browser.close();
+        return { success: false, message: 'パスワードが正しくありません。' };
+      }
+
+      // アカウントエラーの確認
+      const accountError = await page.isVisible('#usernameError');
+      if (accountError) {
+        await browser.close();
+        return { success: false, message: 'アカウントが見つかりません。' };
+      }
+
+      // Step 3: "サインインの状態を維持しますか?"
+      try {
+        const confirmBtn = await page.waitForSelector('#idSIButton9', { timeout: 5000 });
+        if (confirmBtn) {
+          await confirmBtn.click();
+          await page.waitForLoadState('networkidle');
+        }
+      } catch (e) {
+        // 画面が出なかった場合は続行
+      }
+
+      // OZO画面に到達したか確認
+      await page.waitForTimeout(2000);
+      const currentUrl = page.url();
+
+      await browser.close();
+
+      if (currentUrl.includes('manage.ozo-cloud.jp') && !currentUrl.includes('login.microsoftonline.com')) {
+        return { success: true, message: 'ログイン成功！認証情報は正しいです。' };
+      } else {
+        return { success: false, message: 'ログインに失敗しました。認証情報を確認してください。' };
+      }
+    } catch (error) {
+      console.error('Login test error:', error);
+      if (browser) await browser.close();
+      return { success: false, message: 'ログインテストエラー: ' + error.message };
+    }
+  });
+
   ipcMain.handle('get-app-version', () => {
     return app.getVersion();
   });

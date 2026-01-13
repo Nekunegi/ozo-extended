@@ -271,6 +271,15 @@
         <input type="password" class="input" id="password" placeholder="">
     </div>
 
+    <div class="form-group">
+        <button id="btnTestLogin" class="btn"
+            style="background: rgba(255,255,255,0.1); width: 100%; color: #fff; padding: 10px;" onclick="testLogin()">
+            🔐 ログインテスト
+        </button>
+        <div id="loginTestMessage"
+            style="text-align: center; font-size: 11px; margin-top: 8px; color: #8892b0; display: none;"></div>
+    </div>
+
     <div class="section-header">📱 アプリ設定</div>
 
     <div class="form-group"
@@ -345,6 +354,47 @@
                 document.getElementById('autoClockIn').checked = config.AUTO_CLOCK_IN !== undefined ? config.AUTO_CLOCK_IN : false; // Default OFF
             }
         });
+
+        // ログインテスト
+        async function testLogin() {
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('btnTestLogin');
+            const msg = document.getElementById('loginTestMessage');
+
+            if (!userId || !password) {
+                msg.style.display = 'block';
+                msg.textContent = 'メールアドレスとパスワードを入力してください';
+                msg.style.color = '#ef4444';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '🔄 テスト中...';
+            btn.style.opacity = '0.7';
+            msg.style.display = 'none';
+
+            try {
+                const result = await window.electronAPI.testLogin(userId, password);
+
+                msg.style.display = 'block';
+                if (result.success) {
+                    msg.textContent = result.message;
+                    msg.style.color = '#22c55e';
+                } else {
+                    msg.textContent = result.message;
+                    msg.style.color = '#ef4444';
+                }
+            } catch (e) {
+                msg.style.display = 'block';
+                msg.textContent = 'エラーが発生しました: ' + e.message;
+                msg.style.color = '#ef4444';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔐 ログインテスト';
+                btn.style.opacity = '1';
+            }
+        }
 
         // 設定を保存
         async function saveSettings() {
