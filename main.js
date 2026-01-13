@@ -76,15 +76,58 @@ async function ensurePlaywrightBrowsers() {
 }
 
 async function installPlaywrightBrowser() {
-  // 方法1: playwright-core CLI を使用 (ELECTRON_RUN_AS_NODE を設定)
+  // 方法1: Playwrightの内部レジストリAPIを使用（推奨）
   try {
+    log.info('Trying Playwright internal registry API...');
+
+    // playwright-core の内部モジュールを使用
+    const { registry } = require('playwright-core/lib/server');
+
+    // Chromium のエグゼキュータブル情報を取得
+    const executable = registry.findExecutable('chromium');
+
+    if (executable) {
+      log.info('Found chromium executable descriptor, installing...');
+
+      // ダウンロード進捗をログに出力
+      await registry.install([executable], false);
+
+      log.info('Playwright browser installed successfully via registry API');
+      return true;
+    } else {
+      log.warn('Could not find chromium executable in registry');
+    }
+  } catch (registryError) {
+    log.warn('Registry API failed:', registryError.message);
+    log.warn('Registry API stack:', registryError.stack);
+  }
+
+  // 方法2: 別の内部APIを試す
+  try {
+    log.info('Trying alternative Playwright API...');
+
+    const playwright = require('playwright-core');
+    const { installBrowsersForNpmInstall } = require('playwright-core/lib/server');
+
+    // Chromium のみをインストール
+    await installBrowsersForNpmInstall(['chromium']);
+
+    log.info('Playwright browser installed successfully via installBrowsersForNpmInstall');
+    return true;
+  } catch (altError) {
+    log.warn('Alternative API failed:', altError.message);
+  }
+
+  // 方法3: CLI を直接実行（開発環境向けフォールバック）
+  try {
+    log.info('Trying CLI fallback...');
+
     const playwrightCli = require.resolve('playwright-core/cli');
     const nodeExe = process.execPath;
 
     log.info('Using Electron/Node.js at:', nodeExe);
     log.info('Using Playwright CLI at:', playwrightCli);
 
-    // ELECTRON_RUN_AS_NODE=1 を設定すると、Electron が Node.js として動作する
     const { spawn } = require('child_process');
 
     return new Promise((resolve) => {
@@ -126,9 +169,11 @@ async function installPlaywrightBrowser() {
       }, 300000);
     });
   } catch (cliError) {
-    log.warn('CLI install failed:', cliError.message);
-    return false;
+    log.warn('CLI fallback failed:', cliError.message);
   }
+
+  log.error('All installation methods failed');
+  return false;
 }
 
 let tray = null;
