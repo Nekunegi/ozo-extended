@@ -52,46 +52,67 @@ async function ensurePlaywrightBrowsers() {
     log.info('Playwright browser not found at:', executablePath);
     log.info('Installing Playwright Chromium browser...');
 
-    // Playwright の内部API を使用してブラウザをインストール
-    // playwright/lib/server/registry を使用
-    try {
-      const { Registry } = require('playwright-core/lib/server/registry');
-      const registry = new Registry(require('playwright-core').devices);
+    // インストールを試みる
+    const installed = await installPlaywrightBrowser();
 
-      // Chromiumのみをインストール
-      await registry.install(['chromium'], false);
-
-      log.info('Playwright browser installed successfully');
-      return true;
-    } catch (registryError) {
-      log.warn('Registry API failed, trying CLI approach:', registryError.message);
-
-      // フォールバック: playwright-core の cli を使う
-      try {
-        const playwrightCli = require.resolve('playwright-core/cli');
-
-        // Node.jsの実行パスを取得
-        const nodeExe = process.execPath;
-
-        log.info('Using Node.js at:', nodeExe);
-        log.info('Using Playwright CLI at:', playwrightCli);
-
-        execFileSync(nodeExe, [playwrightCli, 'install', 'chromium'], {
-          stdio: 'inherit',
-          env: { ...process.env }
-        });
-
-        log.info('Playwright browser installed successfully via CLI');
-        return true;
-      } catch (cliError) {
-        log.error('CLI install also failed:', cliError.message);
-        return false;
-      }
+    if (!installed) {
+      // インストール失敗時にダイアログを表示
+      const { dialog } = require('electron');
+      const result = await dialog.showMessageBox({
+        type: 'error',
+        title: 'ブラウザのインストールが必要です',
+        message: 'Playwrightブラウザのインストールに失敗しました。\n\n以下のコマンドを手動で実行してください：\n\nnpx playwright install chromium\n\n実行後、アプリを再起動してください。',
+        buttons: ['OK'],
+        defaultId: 0
+      });
+      return false;
     }
+
+    return true;
   } catch (error) {
     log.error('Error checking/installing Playwright browser:', error);
     return false;
   }
+}
+
+async function installPlaywrightBrowser() {
+  // 方法1: playwright-core CLI を使用
+  try {
+    const playwrightCli = require.resolve('playwright-core/cli');
+    const nodeExe = process.execPath;
+
+    log.info('Using Node.js at:', nodeExe);
+    log.info('Using Playwright CLI at:', playwrightCli);
+
+    execFileSync(nodeExe, [playwrightCli, 'install', 'chromium'], {
+      stdio: 'inherit',
+      env: { ...process.env },
+      timeout: 300000 // 5分タイムアウト
+    });
+
+    log.info('Playwright browser installed successfully via CLI');
+    return true;
+  } catch (cliError) {
+    log.warn('CLI install failed:', cliError.message);
+  }
+
+  // 方法2: npxを使用（開発環境向け）
+  try {
+    const { execSync } = require('child_process');
+    execSync('npx playwright install chromium', {
+      stdio: 'inherit',
+      env: { ...process.env },
+      timeout: 300000
+    });
+
+    log.info('Playwright browser installed successfully via npx');
+    return true;
+  } catch (npxError) {
+    log.warn('npx install failed:', npxError.message);
+  }
+
+  log.error('All installation methods failed');
+  return false;
 }
 
 let tray = null;
@@ -487,6 +508,15 @@ app.whenReady().then(async () => {
     } catch (error) {
       console.error('Login test error:', error);
       if (browser) await browser.close();
+
+      // ブラウザが見つからないエラーの場合、具体的な案内を表示
+      if (error.message.includes("Executable doesn't exist") || error.message.includes('browserType.launch')) {
+        return {
+          success: false,
+          message: 'ブラウザがインストールされていません。\n\nコマンドプロンプトで以下を実行してください：\nnpx playwright install chromium\n\n実行後、アプリを再起動してください。'
+        };
+      }
+
       return { success: false, message: 'ログインテストエラー: ' + error.message };
     }
   });
