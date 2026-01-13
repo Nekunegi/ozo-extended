@@ -841,6 +841,9 @@ async function handleClockOut(autoManHour = false) {
       const clockInTime = await ozo3.getClockInTime();
       const clockOutTime = await ozo3.getClockOutTime();
       updateWorkInfoCache(clockInTime, clockOutTime);
+
+      // 月次労働時間キャッシュをクリア（次回取得時に更新される）
+      monthlyWorkHoursCache = null;
     } catch (e) {
       console.error('Info update failed:', e);
     }

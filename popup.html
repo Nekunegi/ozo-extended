@@ -891,6 +891,9 @@
                         overlay.style.display = 'none';
                         window.electronAPI.closeWindow();
                     }, 4000);
+
+                    // 月次労働時間情報を再取得
+                    loadMonthlyData();
                 } else {
                     const msg = result ? result.message : '不明なエラー';
                     msgEl.innerHTML = `
