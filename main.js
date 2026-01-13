@@ -1,7 +1,7 @@
 const { app, Tray, Menu, nativeImage, Notification, BrowserWindow, ipcMain, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const ManageOZO3 = require('./manageOZO3');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
@@ -16,6 +16,64 @@ if (process.platform === 'win32') {
     execSync('chcp 65001', { stdio: 'ignore' });
   } catch (e) {
     // 失敗しても続行
+  }
+}
+
+// Playwrightのブラウザがインストールされているか確認し、なければインストール
+async function ensurePlaywrightBrowsers() {
+  try {
+    // Playwrightのchromiumパスを取得
+    const { chromium } = require('playwright');
+    const executablePath = chromium.executablePath();
+
+    // ブラウザが存在するか確認
+    if (fs.existsSync(executablePath)) {
+      log.info('Playwright browser already installed at:', executablePath);
+      return true;
+    }
+
+    log.info('Playwright browser not found at:', executablePath);
+    log.info('Installing Playwright Chromium browser...');
+
+    // Playwright の内部API を使用してブラウザをインストール
+    // playwright/lib/server/registry を使用
+    try {
+      const { Registry } = require('playwright-core/lib/server/registry');
+      const registry = new Registry(require('playwright-core').devices);
+
+      // Chromiumのみをインストール
+      await registry.install(['chromium'], false);
+
+      log.info('Playwright browser installed successfully');
+      return true;
+    } catch (registryError) {
+      log.warn('Registry API failed, trying CLI approach:', registryError.message);
+
+      // フォールバック: playwright-core の cli を使う
+      try {
+        const playwrightCli = require.resolve('playwright-core/cli');
+
+        // Node.jsの実行パスを取得
+        const nodeExe = process.execPath;
+
+        log.info('Using Node.js at:', nodeExe);
+        log.info('Using Playwright CLI at:', playwrightCli);
+
+        execFileSync(nodeExe, [playwrightCli, 'install', 'chromium'], {
+          stdio: 'inherit',
+          env: { ...process.env }
+        });
+
+        log.info('Playwright browser installed successfully via CLI');
+        return true;
+      } catch (cliError) {
+        log.error('CLI install also failed:', cliError.message);
+        return false;
+      }
+    }
+  } catch (error) {
+    log.error('Error checking/installing Playwright browser:', error);
+    return false;
   }
 }
 
@@ -186,7 +244,10 @@ function showNotification(title, body) {
   new Notification({ title, body }).show();
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Playwrightのブラウザがインストールされているか確認し、なければインストール
+  await ensurePlaywrightBrowsers();
+
   setupAutoUpdater();
   autoUpdater.checkForUpdatesAndNotify();
 
