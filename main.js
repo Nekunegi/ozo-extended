@@ -76,43 +76,59 @@ async function ensurePlaywrightBrowsers() {
 }
 
 async function installPlaywrightBrowser() {
-  // 方法1: playwright-core CLI を使用
+  // 方法1: playwright-core CLI を使用 (ELECTRON_RUN_AS_NODE を設定)
   try {
     const playwrightCli = require.resolve('playwright-core/cli');
     const nodeExe = process.execPath;
 
-    log.info('Using Node.js at:', nodeExe);
+    log.info('Using Electron/Node.js at:', nodeExe);
     log.info('Using Playwright CLI at:', playwrightCli);
 
-    execFileSync(nodeExe, [playwrightCli, 'install', 'chromium'], {
-      stdio: 'inherit',
-      env: { ...process.env },
-      timeout: 300000 // 5分タイムアウト
-    });
+    // ELECTRON_RUN_AS_NODE=1 を設定すると、Electron が Node.js として動作する
+    const { spawn } = require('child_process');
 
-    log.info('Playwright browser installed successfully via CLI');
-    return true;
+    return new Promise((resolve) => {
+      const child = spawn(nodeExe, [playwrightCli, 'install', 'chromium'], {
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      child.stdout.on('data', (data) => {
+        log.info('Install output:', data.toString());
+      });
+
+      child.stderr.on('data', (data) => {
+        log.info('Install stderr:', data.toString());
+      });
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          log.info('Playwright browser installed successfully via CLI');
+          resolve(true);
+        } else {
+          log.warn('CLI install failed with code:', code);
+          resolve(false);
+        }
+      });
+
+      child.on('error', (err) => {
+        log.warn('CLI spawn error:', err.message);
+        resolve(false);
+      });
+
+      // 5分タイムアウト
+      setTimeout(() => {
+        if (!child.killed) {
+          child.kill();
+          log.warn('CLI install timed out');
+          resolve(false);
+        }
+      }, 300000);
+    });
   } catch (cliError) {
     log.warn('CLI install failed:', cliError.message);
+    return false;
   }
-
-  // 方法2: npxを使用（開発環境向け）
-  try {
-    const { execSync } = require('child_process');
-    execSync('npx playwright install chromium', {
-      stdio: 'inherit',
-      env: { ...process.env },
-      timeout: 300000
-    });
-
-    log.info('Playwright browser installed successfully via npx');
-    return true;
-  } catch (npxError) {
-    log.warn('npx install failed:', npxError.message);
-  }
-
-  log.error('All installation methods failed');
-  return false;
 }
 
 let tray = null;
