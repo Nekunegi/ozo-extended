@@ -1,9 +1,12 @@
+/**
+ * OZO ManageOZO3 操作クラス
+ */
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron'); // Electron app for path
+const { app } = require('electron');
+const { OZO_URLS, TIME_CONSTANTS } = require('../shared/constants');
 
-const LOGIN_URL = 'https://manage.ozo-cloud.jp/ozo/default.cfm?version=fixer';
 const STORAGE_STATE_PATH = path.join(app.getPath('userData'), 'session.json');
 
 class ManageOZO3 {
@@ -13,7 +16,10 @@ class ManageOZO3 {
         this.context = null;
     }
 
-    // 設定ファイルから認証情報を読み込み
+    /**
+     * 設定ファイルから認証情報を読み込み
+     * @returns {Object} 認証情報
+     */
     loadCredentials() {
         const configPath = path.join(app.getPath('userData'), 'config.json');
         if (!fs.existsSync(configPath)) {
@@ -23,17 +29,18 @@ class ManageOZO3 {
         return config;
     }
 
-    // ブラウザを起動
+    /**
+     * ブラウザを起動
+     * @param {boolean} headless - ヘッドレスモード
+     */
     async launch(headless = false) {
         this.browser = await chromium.launch({
             headless: headless,
             slowMo: 100
         });
 
-        // セッション情報があれば読み込む
         let contextOptions = {};
         if (fs.existsSync(STORAGE_STATE_PATH)) {
-            // console.log('セッション情報を読み込みます');
             contextOptions.storageState = STORAGE_STATE_PATH;
         }
 
@@ -41,7 +48,9 @@ class ManageOZO3 {
         this.page = await this.context.newPage();
     }
 
-    // ブラウザを閉じる
+    /**
+     * ブラウザを閉じる
+     */
     async close() {
         if (this.browser) {
             await this.browser.close();
@@ -51,18 +60,19 @@ class ManageOZO3 {
         }
     }
 
-    // ログイン処理
+    /**
+     * ログイン処理
+     */
     async login() {
         const credentials = this.loadCredentials();
 
         console.log('ログインページを開きます...');
-        await this.page.goto(LOGIN_URL);
+        await this.page.goto(OZO_URLS.LOGIN);
         await this.page.waitForLoadState('networkidle');
 
         // URLでログイン済みか判定
         if (!this.page.url().includes('login.microsoftonline.com')) {
             console.log('既にログイン済みです');
-            // セッション情報を更新（延長）するために保存
             await this.context.storageState({ path: STORAGE_STATE_PATH });
             return;
         }
@@ -72,12 +82,10 @@ class ManageOZO3 {
         await this.page.waitForSelector('#i0116', { timeout: 60000 });
         await this.page.fill('#i0116', credentials.USER_ID);
         await this.page.click('#idSIButton9');
-
         await this.page.waitForLoadState('networkidle');
 
         // Step 2: PASSWORD入力
         console.log('PASSWORDを入力します...');
-        // パスワード画面か確認
         if (await this.page.isVisible('#i0118')) {
             await this.page.fill('#i0118', credentials.PASSWORD);
             await this.page.click('#idSIButton9');
@@ -86,49 +94,42 @@ class ManageOZO3 {
 
         // Step 3: "サインインの状態を維持しますか?"
         console.log('確認ボタンを押します...');
-        // タイミングによっては出ない場合もあるので、少し待機して要素があればクリック
         try {
             const confirmBtn = await this.page.waitForSelector('#idSIButton9', { timeout: 5000 });
             if (confirmBtn) {
-                // それがKMSI画面かどうかの厳密なチェックは省略（フロー上、次はこれしかない）
                 await confirmBtn.click();
                 await this.page.waitForLoadState('networkidle');
             }
         } catch (e) {
-            // タイムアウトした＝画面が出なかった、とみなして進む
+            // タイムアウトは無視
         }
 
-        console.log('ログイン完了待ち...');
-        // OZOの画面に戻ってくるのを待つ
-        // await this.page.waitForURL('**/default.cfm**', { timeout: 60000 });
-
         console.log('ログイン完了！');
-
-        // セッション情報を保存
         await this.context.storageState({ path: STORAGE_STATE_PATH });
     }
 
-
-
-    // 打刻テーブルから出勤時刻を取得
+    /**
+     * 打刻テーブルから出勤時刻を取得
+     * @returns {string|null} 出勤時刻
+     */
     async getClockInTime() {
-        // 打刻の行（2行目のデータ行）の出勤セル（3列目）を取得
         const clockInCell = await this.page.$('table.BaseDesign tbody tr:nth-child(3) td:nth-child(3)');
         if (!clockInCell) {
             return null;
         }
         const text = await clockInCell.textContent();
         const trimmed = text.trim().replace(/\s+/g, '');
-        // 空、&nbsp;、−などは未出勤と判定
         if (!trimmed || trimmed === '' || trimmed === '−' || trimmed === '-' || trimmed === '&nbsp;') {
             return null;
         }
         return trimmed;
     }
 
-    // 打刻テーブルから退勤時刻を取得
+    /**
+     * 打刻テーブルから退勤時刻を取得
+     * @returns {string|null} 退勤時刻
+     */
     async getClockOutTime() {
-        // 打刻の行（2行目のデータ行）の退出セル（4列目）を取得
         const clockOutCell = await this.page.$('table.BaseDesign tbody tr:nth-child(3) td:nth-child(4)');
         if (!clockOutCell) {
             return null;
@@ -141,31 +142,30 @@ class ManageOZO3 {
         return trimmed;
     }
 
-    // 出勤処理
+    /**
+     * 出勤処理
+     * @returns {Object} 結果オブジェクト
+     */
     async clockIn() {
         console.log('出勤処理を実行します...');
 
-        // 既に出勤済みかチェック
         const clockInTime = await this.getClockInTime();
         if (clockInTime) {
             console.log(`既に出勤済みです（${clockInTime}）`);
             return { success: false, message: `既に出勤済みです（${clockInTime}）` };
         }
 
-        // 出勤ボタンをクリック
         console.log('出勤ボタンをクリックします...');
         try {
             await Promise.all([
                 this.page.waitForLoadState('networkidle'),
                 this.page.click('#btn03')
             ]);
-            await this.page.waitForTimeout(1000); // 念のため安定待ち
+            await this.page.waitForTimeout(1000);
         } catch (e) {
             console.error('Click/Navigation error:', e);
-            // エラーが出ても、処理自体は進んでいる可能性があるので続行してみる
         }
 
-        // 出勤時刻を確認
         const newClockInTime = await this.getClockInTime();
         if (newClockInTime) {
             console.log(`出勤完了！（${newClockInTime}）`);
@@ -176,21 +176,24 @@ class ManageOZO3 {
         }
     }
 
-    // 退勤処理
+    /**
+     * 退勤処理
+     * @param {boolean} forceManHour - 強制工数入力モード
+     * @param {boolean} autoManHour - 工数自動入力モード
+     * @returns {Object} 結果オブジェクト
+     */
     async clockOut(forceManHour = false, autoManHour = false) {
         console.log(`退勤処理を実行します... Force:${forceManHour}, AutoMH:${autoManHour}`);
 
-        // 出勤していないのに退勤しようとしていないかチェック
         const clockInTime = await this.getClockInTime();
         if (!clockInTime) {
             console.log('まだ出勤していません');
             return { success: false, message: 'まだ出勤していません' };
         }
 
-        // 既に退勤済みかチェック
         let newClockOutTime = await this.getClockOutTime();
 
-        // ダイアログハンドラ (退勤済み時のアラートなどを自動OKする)
+        // ダイアログハンドラ
         const dialogHandler = async (dialog) => {
             try {
                 console.log(`Dialog detected: ${dialog.message()}`);
@@ -210,21 +213,16 @@ class ManageOZO3 {
             console.log('設定により、退勤ボタンを強制クリックします。');
         }
 
-        // 退勤ボタンをクリック
         console.log('退勤ボタンをクリックします...');
         try {
             await this.page.click('#btn04');
-            // ダイアログが複数回出る可能性があるので、十分な待機時間を設ける
             await this.page.waitForTimeout(3000);
         } catch (e) {
             console.error('Click error:', e);
-            // エラーが出ても続行を試みる
         }
 
-        // ダイアログハンドラを解除
         this.page.off('dialog', dialogHandler);
 
-        // ページのリロード完了を待つ（ナビゲーション後のコンテキスト破棄対策）
         try {
             await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 });
             await this.page.waitForLoadState('networkidle', { timeout: 10000 });
@@ -232,16 +230,13 @@ class ManageOZO3 {
             console.log('Page load wait timeout, continuing...');
         }
 
-        // 退勤時刻を確認（ページ更新後の最新値）
         newClockOutTime = await this.getClockOutTime();
 
         if (newClockOutTime) {
             console.log(`退勤完了！（${newClockOutTime}）`);
 
-            // 工数自動入力（設定でONの場合のみ）
             if (autoManHour) {
                 try {
-                    // ページ更新後の最新の出勤・退勤時刻を取得して計算
                     const updatedClockInTime = await this.getClockInTime();
                     const updatedClockOutTime = await this.getClockOutTime();
                     console.log(`工数計算用時刻: ${updatedClockInTime} - ${updatedClockOutTime}`);
@@ -262,7 +257,12 @@ class ManageOZO3 {
         }
     }
 
-    // 工数入力処理 (自動)
+    /**
+     * 工数入力処理
+     * @param {string} clockInTime - 出勤時刻
+     * @param {string} clockOutTime - 退勤時刻
+     * @returns {string[]} タスクリスト
+     */
     async submitManHour(clockInTime, clockOutTime) {
         console.log(`工数入力を開始します... ${clockInTime} - ${clockOutTime}`);
 
@@ -272,32 +272,26 @@ class ManageOZO3 {
         };
 
         let diff = toMinutes(clockOutTime) - toMinutes(clockInTime);
-        // 日跨ぎ対応 (例: 22:00 -> 02:00 = 120 - 1320 = -1200 -> +1440 = 240)
         if (diff < 0) diff += 24 * 60;
-
-        // 休憩1h(60m)を引く（マイナスガード付き）
-        if (diff > 60) diff -= 60;
+        if (diff > TIME_CONSTANTS.BREAK_MINUTES) diff -= TIME_CONSTANTS.BREAK_MINUTES;
         else if (diff < 0) diff = 0;
 
-        const MAN_HOUR_URL = 'https://manage.ozo-cloud.jp/ozo/default.cfm?version=fixer&app_cd=388&fuseaction=kos&today_open=1';
-        await this.page.goto(MAN_HOUR_URL);
+        await this.page.goto(OZO_URLS.MAN_HOUR);
         await this.page.waitForLoadState('networkidle');
 
         console.log('前日データをコピー...');
         try {
             await this.page.waitForSelector('#a_sub_copy_select', { timeout: 10000 });
             await this.page.click('#a_sub_copy_select');
-            await this.page.waitForTimeout(2000); // 行生成待ち
+            await this.page.waitForTimeout(2000);
         } catch (e) {
             console.log('コピーボタン失敗、または存在しません。手動入力を試みます。');
         }
 
-        // 行を特定してフィルタリング
         const potentialRows = await this.page.$$('[id^="div_sub_editlist_WORK_TIME_row"]');
         const validRows = [];
         for (const row of potentialRows) {
             const id = await row.getAttribute('id');
-            // "row" + 数字 の形式で、かつ表示されているものだけを対象にする
             if (/^div_sub_editlist_WORK_TIME_row\d+$/.test(id)) {
                 if (await row.isVisible()) {
                     validRows.push(row);
@@ -330,19 +324,14 @@ class ManageOZO3 {
             const inputHandle = await rowHandle.$('input');
 
             if (inputHandle) {
-                // 既存の値を上書きするために確実にクリア
                 await inputHandle.click();
                 await this.page.keyboard.press('Control+A');
                 await this.page.keyboard.press('Backspace');
-
                 await inputHandle.fill(timeStr);
                 const id = await rowHandle.getAttribute('id');
                 console.log(`Filled ${id}: ${timeStr}`);
 
-                // 行のテキストを取得してタスク名とする
                 try {
-                    // ユーザー指定のセレクタ: #div_project_1 > input:nth-child(4)
-                    // rowのインデックス(i+1)と連動していると仮定
                     const projectInputSelector = `#div_project_${i + 1} > input:nth-child(4)`;
                     const projectInput = await this.page.$(projectInputSelector);
 
@@ -350,12 +339,10 @@ class ManageOZO3 {
                     if (projectInput) {
                         rowText = await projectInput.getAttribute('value');
                     } else {
-                        // フォールバック: 行全体からテキストを取得
                         const trHandle = await rowHandle.evaluateHandle(el => el.closest('tr'));
                         rowText = await trHandle.evaluate(el => el.innerText);
                     }
 
-                    // 改行や余分なスペースを整形
                     if (rowText) {
                         rowText = rowText.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
                         if (rowText.length > 50) rowText = rowText.substring(0, 50) + '...';
@@ -371,7 +358,6 @@ class ManageOZO3 {
 
         console.log('登録ボタンをクリック...');
         await this.page.click('#div_sub_buttons_regist');
-        // 登録処理の完了を待つ（データ保存が確実に完了するまで）
         await this.page.waitForTimeout(2000);
         try {
             await this.page.waitForLoadState('networkidle', { timeout: 15000 });
@@ -383,27 +369,24 @@ class ManageOZO3 {
         return taskList;
     }
 
-    // 月次労働時間情報を取得
+    /**
+     * 月次労働時間情報を取得
+     * @returns {Object} 月次情報
+     */
     async getMonthlyWorkHours() {
-        const MONTHLY_URL = 'https://manage.ozo-cloud.jp/ozo/default.cfm?version=fixer&app_cd=329&fuseaction=knt';
-
         console.log('月次労働時間情報を取得します...');
-        await this.page.goto(MONTHLY_URL);
+        await this.page.goto(OZO_URLS.MONTHLY);
         await this.page.waitForLoadState('networkidle');
 
-        // 実働時間 (td要素を明示的に指定)
         const workedEl = await this.page.$('td.flex-roudou');
         const workedTime = workedEl ? (await workedEl.textContent()).trim() : '--:--';
 
-        // 必要時間
         const requiredEl = await this.page.$('.flex-prescribed.kinmu-tooltip');
         const requiredTime = requiredEl ? (await requiredEl.textContent()).trim() : '--:--';
 
-        // 差分
         const diffEl = await this.page.$('td.flex-prescribed-overless.kinmu-tooltip');
         const diffTime = diffEl ? (await diffEl.textContent()).trim() : '--:--';
 
-        // 日別過不足
         const dailyDiffEl = await this.page.$('#frmSearch > table:nth-child(36) > tbody > tr:nth-child(2) > td > table:nth-child(1) > tbody > tr:nth-child(3) > td:nth-child(22)');
         const dailyDiffTime = dailyDiffEl ? (await dailyDiffEl.textContent()).trim() : '--:--';
 
@@ -417,7 +400,10 @@ class ManageOZO3 {
         };
     }
 
-    // Cookieを取得
+    /**
+     * Cookieを取得
+     * @returns {Array} Cookie配列
+     */
     async getCookies() {
         if (!this.context) {
             if (this.page) {
@@ -428,16 +414,6 @@ class ManageOZO3 {
         }
         return await this.context.cookies();
     }
-
-    async close() {
-        if (this.browser) {
-            await this.browser.close();
-            this.browser = null;
-            this.context = null;
-            this.page = null;
-        }
-    }
 }
 
 module.exports = ManageOZO3;
-

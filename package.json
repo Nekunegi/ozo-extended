@@ -3,9 +3,10 @@
   "productName": "ozo-extended",
   "version": "0.0.36",
   "description": "出勤管理ツール",
-  "main": "main.js",
+  "main": "src/main/index.js",
   "scripts": {
     "start": "chcp 65001 && electron .",
+    "start:legacy": "chcp 65001 && electron . --legacy",
     "build": "electron-builder",
     "postinstall": "npx playwright install chromium"
   },
@@ -27,6 +28,11 @@
   },
   "build": {
     "appId": "com.nekunegi.ozo-extended",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "!src/**/*.md"
+    ],
     "publish": [
       {
         "provider": "github",

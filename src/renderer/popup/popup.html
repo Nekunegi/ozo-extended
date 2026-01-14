@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ozo:extended</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <div class="header-btns-left">
+        <button class="header-btn" onclick="window.electronAPI.openManageOZO3()" title="ManageOZO3を開く">
+            <img src="../../../assets/icon.png" alt="OZO">
+        </button>
+    </div>
+    <div class="header-btns">
+        <button class="header-btn" onclick="window.electronAPI.openSettings()" title="設定">⚙️</button>
+    </div>
+
+    <!-- Slide Arrow Buttons -->
+    <button id="arrowRight" class="slide-arrow slide-arrow-right" onclick="slideToMonthly()" title="月次情報">▶</button>
+    <button id="arrowLeft" class="slide-arrow slide-arrow-left" onclick="slideToMain()" style="display: none;"
+        title="メイン">◀</button>
+
+    <div class="title">ozo:extended</div>
+
+    <div class="slide-wrapper">
+        <div id="slideContainer" class="slide-container">
+            <!-- Panel 1: Main View -->
+            <div class="slide-panel" id="mainPanel">
+                <div class="time" id="currentTime">--:--:--</div>
+
+                <div id="workInfo"
+                    style="display: none; width: 100%; margin-bottom: 8px; padding: 0 16px; position: relative;">
+                    <div id="workInfoContent"
+                        style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px; font-size: 10px;">
+                        <div id="workInfoLoading" class="loading-overlay" style="display: none;">
+                            <div class="spinner"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #8892b0;">
+                            <div>出 <span id="clockInTime" style="color: #fff; font-weight: 600;">--:--</span></div>
+                            <div>退 <span id="clockOutTime" style="color: #fff; font-weight: 600;">--:--</span></div>
+                            <div>最 <span id="minClockOutTime" style="color: #00cec9; font-weight: 600;">--:--</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div id="progressBar" class="progress-bar-fill"></div>
+                            <div
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
+                                <span style="margin-right: 6px; font-weight: 400; opacity: 0.9;">残り</span>
+                                <span id="countdown" style="font-weight: 600;">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="container" id="mainButtons" style="display: none; margin-top: 8px;">
+                    <button id="btnClockIn" class="btn btn-clock-in" onclick="window.handleClockInWrapper()">
+                        <span class="btn-spinner"></span>
+                        <span class="btn-content">
+                            <span class="btn-icon">🏢</span>
+                            <span>出勤</span>
+                        </span>
+                    </button>
+                    <!-- 2分割退勤ボタン -->
+                    <div id="clockOutContainer" class="clock-out-container">
+                        <button id="btnClockOut" class="btn btn-clock-out-left"
+                            onclick="window.handleClockOutWrapper()">
+                            <span class="btn-spinner"></span>
+                            <span class="btn-content">
+                                <span class="btn-icon">🏠</span>
+                                <span>退勤</span>
+                            </span>
+                        </button>
+                        <button id="btnClockOutAuto" class="btn btn-clock-out-right"
+                            onclick="window.handleClockOutAutoWrapper()" title="退勤＆工数自動入力（前日の工数をコピー）">
+                            <span class="btn-spinner"></span>
+                            <span class="btn-content">
+                                <span class="main-text"><span class="btn-icon">🏠</span>退勤</span>
+                                <span class="btn-sub">(工数自動)</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="container" id="setupPrompt" style="display: none;">
+                    <p style="text-align: center; color: #8892b0; font-size: 12px; margin-bottom: 12px;">
+                        メールアドレスと<br>パスワードを設定してください
+                    </p>
+                    <button class="btn btn-clock-in" onclick="window.electronAPI.openSettings()">
+                        <span class="btn-content">
+                            <span class="btn-icon">⚙️</span>
+                            <span>設定を開く</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel 2: Monthly Info -->
+            <div class="slide-panel" id="monthlyPanel" style="justify-content: center;">
+                <div class="monthly-info">
+                    <div class="monthly-title"
+                        style="text-align: center; font-size: 12px; color: #8892b0; margin-bottom: 8px; font-weight: 600;">
+                        勤怠管理情報</div>
+                    <div class="monthly-card" id="monthlyCard">
+                        <div id="monthlyLoading" class="monthly-loading">
+                            <div class="spinner" style="margin: 0 auto;"></div>
+                            <div style="margin-top: 8px;">読み込み中...</div>
+                        </div>
+                        <div id="monthlyData" style="display: none;">
+                            <div class="monthly-row">
+                                <span class="monthly-label">実働</span>
+                                <span class="monthly-value" id="workedTime">--:--</span>
+                            </div>
+                            <div class="monthly-row">
+                                <span class="monthly-label">必要</span>
+                                <span class="monthly-value" id="requiredTime">--:--</span>
+                            </div>
+                            <div class="monthly-row">
+                                <span class="monthly-label">差分</span>
+                                <span class="monthly-value" id="diffTime">--:--</span>
+                            </div>
+                            <div class="monthly-row">
+                                <span class="monthly-label">日別過不足</span>
+                                <span class="monthly-value" id="dailyDiffTime">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="versionDisplay" class="version-display">
+        v-.--.-
+    </div>
+
+    <!-- ネットワークエラーオーバーレイ -->
+    <div id="networkErrorOverlay" class="network-error-overlay">
+        <div style="font-size: 40px; margin-bottom: 8px;">📡</div>
+        <div style="font-size: 14px; font-weight: bold; color: #ff6b6b; margin-bottom: 8px;">
+            ネットワーク未接続
+        </div>
+        <div style="font-size: 11px; color: #8892b0; line-height: 1.5;">
+            インターネットに接続されていません。<br>
+            接続を確認してから再度お試しください。
+        </div>
+        <button onclick="retryNetworkCheck()" style="margin-top: 16px; padding: 8px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+            🔄 再試行
+        </button>
+    </div>
+
+    <div id="processingOverlay" class="processing-overlay">
+        <div class="spinner" style="width: 32px; height: 32px; border-width: 3px; border-top-color: #00cec9;"></div>
+        <div class="processing-message">
+            処理を実行中です...
+        </div>
+        <div class="processing-warning">
+            電源を切ったり<br>ネットワークを切断しないでください
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

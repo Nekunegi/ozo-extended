@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ozo:extended 設定</title>
+    <link rel="stylesheet" href="settings.css">
+</head>
+
+<body>
+    <button class="close-btn" onclick="window.electronAPI.closeSettings()" title="閉じる">×</button>
+    <div class="title">⚙️ 設定</div>
+
+    <div class="section-header">🔑 OZOアカウント設定</div>
+
+    <div class="form-group">
+        <label class="label">メールアドレス</label>
+        <input type="email" class="input" id="userId" placeholder="">
+    </div>
+
+    <div class="form-group">
+        <label class="label">パスワード</label>
+        <input type="password" class="input" id="password" placeholder="">
+    </div>
+
+    <div class="form-group">
+        <button id="btnTestLogin" class="btn btn-secondary" onclick="testLogin()">
+            🔐 ログインテスト
+        </button>
+        <div id="loginTestMessage" class="test-message"></div>
+    </div>
+
+    <div class="section-header">📱 アプリ設定</div>
+
+    <div class="form-group toggle-row">
+        <label class="label toggle-label">バックグラウンド実行 <br><span class="toggle-sublabel">(ブラウザを表示しない)</span></label>
+        <label class="switch">
+            <input type="checkbox" id="headlessMode">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="form-group toggle-row">
+        <label class="label toggle-label">PC起動時に自動起動 <br><span
+                class="toggle-sublabel">(Windowsログイン時に起動します)</span></label>
+        <label class="switch">
+            <input type="checkbox" id="autoLaunch">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="form-group toggle-row">
+        <label class="label toggle-label">起動時に自動出勤 <br><span class="toggle-sublabel">(アプリ起動時に出勤処理を実行します)</span></label>
+        <label class="switch">
+            <input type="checkbox" id="autoClockIn">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-save" onclick="saveSettings()">保存</button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <div class="version-section">
+        <div class="version-display">
+            Version: <span id="currentVersion">...</span>
+        </div>
+        <button id="btnCheckUpdate" class="btn btn-secondary" onclick="checkForUpdates()">
+            アップデートを確認
+        </button>
+        <div id="updateMessage" class="test-message"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="footer-logo">
+        <span class="logo-ozo">ozo</span><span class="logo-colon">:</span><span class="logo-extended">extended</span>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+
+</html>
