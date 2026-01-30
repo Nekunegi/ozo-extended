@@ -20,6 +20,7 @@
     "async-mutex": "^0.5.0",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.7.3",
+    "japanese-holidays": "^1.0.10",
     "playwright": "^1.57.0"
   },
   "repository": {

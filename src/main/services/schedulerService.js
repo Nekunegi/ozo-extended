@@ -6,6 +6,7 @@ const { powerMonitor } = require('electron');
 const configManager = require('../config/configManager');
 const workInfoService = require('./workInfoService');
 const clockService = require('./clockService');
+const JapaneseHolidays = require('japanese-holidays');
 
 let dailyResetTimeout = null;
 let lastCheckedDate = null; // YYYY-MM-DD
@@ -31,6 +32,37 @@ function getMillisecondsUntilMidnight() {
     const midnight = new Date(now);
     midnight.setHours(24, 0, 0, 0);
     return midnight.getTime() - now.getTime();
+}
+
+/**
+ * 自動出勤を実行すべきか判定
+ * @returns {boolean}
+ */
+function shouldAutoClockIn() {
+    const now = new Date();
+    const day = now.getDay(); // 0: Sunday, 6: Saturday
+    const hour = now.getHours();
+
+    // 1. 土日のチェック
+    if (day === 0 || day === 6) {
+        console.log('Skipping auto clock-in: It is weekend.');
+        return false;
+    }
+
+    // 2. 祝日のチェック
+    const isHoliday = JapaneseHolidays.isHoliday(now);
+    if (isHoliday) {
+        console.log(`Skipping auto clock-in: It is holiday (${isHoliday}).`);
+        return false;
+    }
+
+    // 3. 深夜・早朝のチェック (00:00 - 05:59)
+    if (hour < 6) {
+        console.log(`Skipping auto clock-in: It is too early (${hour}:00).`);
+        return false;
+    }
+
+    return true;
 }
 
 /**
@@ -60,13 +92,17 @@ async function checkDailyReset(ozo3, onTrayUpdate, getPopupWindow, fetchMonthlyW
         await fetchMonthlyWorkHours();
     }
 
-    // 自動出勤設定の確認
+    // 自動出勤設定の確認と条件チェック
     if (configManager.isAutoClockIn()) {
-        console.log('Auto clock-in triggered by daily reset.');
-        clockService.handleClockIn(ozo3, onTrayUpdate, getPopupWindow)
-            .then(() => {
-                if (fetchMonthlyWorkHours) fetchMonthlyWorkHours();
-            });
+        if (shouldAutoClockIn()) {
+            console.log('Auto clock-in triggered by daily reset.');
+            clockService.handleClockIn(ozo3, onTrayUpdate, getPopupWindow)
+                .then(() => {
+                    if (fetchMonthlyWorkHours) fetchMonthlyWorkHours();
+                });
+        } else {
+            console.log('Auto clock-in was restricted by schedule condition.');
+        }
     }
 
     // 次の日次リセットをスケジュール
