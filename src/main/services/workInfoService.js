@@ -121,5 +121,14 @@ module.exports = {
     getMonthlyWorkHoursCache,
     setMonthlyWorkHoursCache,
     startBackgroundFetch,
-    stopBackgroundFetch
+    stopBackgroundFetch,
+    clearWorkInfoCache
 };
+
+/**
+ * 勤務情報キャッシュをクリア
+ */
+function clearWorkInfoCache() {
+    workInfoCache = null;
+    monthlyWorkHoursCache = null;
+}

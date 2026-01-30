@@ -127,6 +127,10 @@ app.whenReady().then(async () => {
             fetchWorkInfo().then(() => fetchMonthlyWorkHours());
         }
     }
+
+    // 日次リセットスケジューラー開始
+    const { startDailyReset } = require('./services/schedulerService');
+    startDailyReset(ozo3, updateTrayIcon, getPopupWindow, fetchMonthlyWorkHours);
 });
 
 // ウィンドウがすべて閉じてもアプリを終了しない
