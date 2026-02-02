@@ -11,9 +11,8 @@ const STORAGE_STATE_PATH = path.join(app.getPath('userData'), 'session.json');
 
 class ManageOZO3 {
     constructor() {
-        this.browser = null;
-        this.page = null;
         this.context = null;
+        this.page = null;
     }
 
     /**
@@ -30,33 +29,39 @@ class ManageOZO3 {
     }
 
     /**
-     * ブラウザを起動
+     * ブラウザを起動 (Edge + Persistent Context)
      * @param {boolean} headless - ヘッドレスモード
      */
     async launch(headless = false) {
-        this.browser = await chromium.launch({
+        const userDataDir = path.join(app.getPath('userData'), 'ozo_edge_session');
+
+        // EdgeのUser Agent
+        const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0';
+
+        console.log(`Launching Edge with user data: ${userDataDir}`);
+
+        this.context = await chromium.launchPersistentContext(userDataDir, {
+            channel: 'msedge', // システムのEdgeを使用
             headless: headless,
+            viewport: { width: 1280, height: 800 },
+            userAgent: USER_AGENT,
+            locale: 'ja-JP',
             slowMo: 100
         });
 
-        let contextOptions = {};
-        if (fs.existsSync(STORAGE_STATE_PATH)) {
-            contextOptions.storageState = STORAGE_STATE_PATH;
-        }
-
-        this.context = await this.browser.newContext(contextOptions);
-        this.page = await this.context.newPage();
+        // ページ取得（Persistent Contextはデフォルトで1ページ開くことが多い）
+        const pages = this.context.pages();
+        this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
     }
 
     /**
      * ブラウザを閉じる
      */
     async close() {
-        if (this.browser) {
-            await this.browser.close();
-            this.browser = null;
-            this.page = null;
+        if (this.context) {
+            await this.context.close();
             this.context = null;
+            this.page = null;
         }
     }
 
@@ -71,41 +76,59 @@ class ManageOZO3 {
         await this.page.waitForLoadState('networkidle');
 
         // URLでログイン済みか判定
+        // Edge SSOなどが効いている場合、リダイレクトですぐにログイン完了画面(OZOトップ)に行く可能性がある
+        // OZOのURLドメイン内にいるかどうかで判断
+        if (this.page.url().includes('manage.ozo-cloud.jp')) {
+            // ログイン画面要素がないか確認する念押し
+            const isLoginInputVisible = await this.page.isVisible('#i0116'); // setup selector
+            if (!isLoginInputVisible) {
+                console.log('既にログイン済みです (URL check passed)');
+                return;
+            }
+        }
+
+        // Microsoftログイン画面か確認
         if (!this.page.url().includes('login.microsoftonline.com')) {
-            console.log('既にログイン済みです');
-            await this.context.storageState({ path: STORAGE_STATE_PATH });
-            return;
+            // 別ドメインだがOZOでもない場合...とりあえず続行してみるが、基本はOZOかMSのどちらか
+            console.log('Current URL:', this.page.url());
         }
 
         // Step 1: USER_ID入力
-        console.log('USER_IDを入力します...');
-        await this.page.waitForSelector('#i0116', { timeout: 60000 });
-        await this.page.fill('#i0116', credentials.USER_ID);
-        await this.page.click('#idSIButton9');
-        await this.page.waitForLoadState('networkidle');
+        // セレクタが存在するか確認（SSOでスキップされている可能性）
+        if (await this.page.isVisible('#i0116')) {
+            console.log('USER_IDを入力します...');
+            await this.page.fill('#i0116', credentials.USER_ID);
+            await this.page.click('#idSIButton9');
+            await this.page.waitForLoadState('networkidle');
+        }
 
         // Step 2: PASSWORD入力
-        console.log('PASSWORDを入力します...');
         if (await this.page.isVisible('#i0118')) {
+            console.log('PASSWORDを入力します...');
             await this.page.fill('#i0118', credentials.PASSWORD);
             await this.page.click('#idSIButton9');
             await this.page.waitForLoadState('networkidle');
         }
 
-        // Step 3: "サインインの状態を維持しますか?"
-        console.log('確認ボタンを押します...');
+        // Step 3: MFA / "サインインの状態を維持しますか?"
+        // ここでMFAが来る場合、ユーザー操作が必要。
+        // ヘッドレスでない場合、ユーザーが入力を完了するのを待つロジックが必要かもしれないが、
+        // 現状は自動処理なので、MFAが来ないことを祈るか、MFA画面で止まる。
+
+        // "サインインの状態を維持しますか?" が出た場合
         try {
-            const confirmBtn = await this.page.waitForSelector('#idSIButton9', { timeout: 5000 });
+            const confirmBtn = await this.page.waitForSelector('#idSIButton9', { state: 'visible', timeout: 5000 });
             if (confirmBtn) {
+                console.log('維持確認ボタンを押します...');
                 await confirmBtn.click();
                 await this.page.waitForLoadState('networkidle');
             }
         } catch (e) {
-            // タイムアウトは無視
+            // タイムアウトは無視（画面が出なかった）
         }
 
-        console.log('ログイン完了！');
-        await this.context.storageState({ path: STORAGE_STATE_PATH });
+        console.log('ログインシーケンス完了');
+        // Persistent Contextなので保存処理は自動
     }
 
     /**
